@@ -6,10 +6,10 @@ use anyhow::Result;
 use revm::{
     db::{CacheDB, EmptyDB},
     primitives::{
-        hex, AccountInfo, Address, Bytecode, Bytes, CreateScheme, Output, ResultAndState,
-        TransactTo, TxEnv, B256, U256,
+        hex, AccountInfo, Address, Bytecode, Bytes, Output, ResultAndState, TransactTo, TxEnv,
+        B256, U256,
     },
-    Database, EVM,
+    Database, Evm, EvmBuilder,
 };
 
 /// The address of the deployed MIPS VM on the in-memory EVM.
@@ -23,25 +23,23 @@ pub const MIPS_CREATION_CODE: &str = include_str!("../../bindings/mips_creation.
 pub const PREIMAGE_ORACLE_DEPLOYED_CODE: &str =
     include_str!("../../bindings/preimage_oracle_deployed.bin");
 
-/// A wrapper around a [revm] inspector with an in-memory backend that has the MIPS & PreimageOracle
+/// A wrapper around a [revm] interpreter with an in-memory backend that has the MIPS & PreimageOracle
 /// smart contracts deployed at deterministic addresses. This is used for differential testing the
 /// implementation of the MIPS VM in this crate against the smart contract implementations.
-pub struct MipsEVM<DB: Database> {
-    pub inner: EVM<DB>,
+pub struct MipsEVM<'a, DB: Database> {
+    pub inner: Evm<'a, (), DB>,
 }
 
-impl Default for MipsEVM<CacheDB<EmptyDB>> {
+impl<'a> Default for MipsEVM<'a, CacheDB<EmptyDB>> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl MipsEVM<CacheDB<EmptyDB>> {
+impl<'a> MipsEVM<'a, CacheDB<EmptyDB>> {
     /// Creates a new MIPS EVM with an in-memory backend.
     pub fn new() -> Self {
-        let mut evm = EVM::default();
-        evm.database(CacheDB::default());
-
+        let evm = EvmBuilder::default().with_db(CacheDB::default()).build();
         Self { inner: evm }
     }
 
@@ -50,7 +48,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
     /// ### Returns
     /// - A [Result] indicating whether the initialization was successful.
     pub fn try_init(&mut self) -> Result<()> {
-        let db = self.inner.db().ok_or(anyhow::anyhow!("Missing database"))?;
+        let db = self.inner.db_mut();
 
         // Fund the zero address.
         db.insert_account_info(
@@ -78,10 +76,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
             .into_iter()
             .chain(encoded_preimage_addr)
             .collect::<Vec<_>>();
-        self.fill_tx_env(
-            TransactTo::Create(CreateScheme::Create),
-            mips_creation_heap.into(),
-        );
+        self.fill_tx_env(TransactTo::Create, mips_creation_heap.into());
         if let Ok(ResultAndState {
             result:
                 revm::primitives::ExecutionResult::Success {
@@ -92,7 +87,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
                     output: Output::Create(code, _),
                 },
             state: _,
-        }) = self.inner.transact_ref()
+        }) = self.inner.transact()
         {
             // Deploy the MIPS contract manually.
             self.deploy_contract(Address::from_slice(MIPS_ADDR.as_slice()), code)
@@ -109,7 +104,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
     ///
     /// ### Returns
     /// - A [Result] containing the post-state hash of the MIPS VM or an error returned during
-    /// execution.
+    ///   execution.
     pub fn step(&mut self, witness: StepWitness) -> Result<StateWitness> {
         if witness.has_preimage() {
             crate::debug!(
@@ -148,7 +143,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
                     output: Output::Call(output),
                 },
             state: _,
-        }) = self.inner.transact_ref()
+        }) = self.inner.transact()
         {
             let output = B256::from_slice(&output);
 
@@ -158,7 +153,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
                 anyhow::bail!("Expected 1 log, got {}", logs.len());
             }
 
-            let post_state: StateWitness = logs[0].data.to_vec().as_slice().try_into()?;
+            let post_state: StateWitness = logs[0].data.data.to_vec().as_slice().try_into()?;
 
             if post_state.state_hash().as_slice() != output.as_slice() {
                 anyhow::bail!(
@@ -187,7 +182,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
             code_hash: B256::ZERO,
             code: Some(Bytecode::new_raw(code)),
         };
-        let db = self.inner.db().ok_or(anyhow::anyhow!("Missing database"))?;
+        let db = self.inner.db_mut();
         db.insert_contract(&mut acc_info);
         db.insert_account_info(addr, acc_info);
         Ok(())
@@ -200,7 +195,8 @@ impl MipsEVM<CacheDB<EmptyDB>> {
     /// - `data`: The calldata for the transaction.
     /// - `to`: The address of the contract to call.
     pub(crate) fn fill_tx_env(&mut self, transact_to: TransactTo, data: Bytes) {
-        self.inner.env.tx = TxEnv {
+        let tx_env = self.inner.tx_mut();
+        *tx_env = TxEnv {
             caller: Address::ZERO,
             gas_limit: u64::MAX,
             gas_price: U256::ZERO,
@@ -213,6 +209,7 @@ impl MipsEVM<CacheDB<EmptyDB>> {
             access_list: Vec::default(),
             blob_hashes: Vec::default(),
             max_fee_per_blob_gas: None,
+            authorization_list: None,
         };
     }
 }
@@ -244,7 +241,7 @@ mod test {
             Bytes::from(SAMPLE.to_vec()),
         );
 
-        let ResultAndState { result, state: _ } = mips_evm.inner.transact_ref().unwrap();
+        let ResultAndState { result, state: _ } = mips_evm.inner.transact().unwrap();
 
         assert!(result.is_success());
         let ExecutionResult::Success {

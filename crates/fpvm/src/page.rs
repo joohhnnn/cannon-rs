@@ -102,7 +102,7 @@ impl CachedPage {
     ///
     /// ### Returns
     /// - A [Result] containing the 32 byte merkle root hash of the subtree or an error if the
-    ///  generalized index is too deep.
+    ///   generalized index is too deep.
     #[inline(always)]
     pub fn merkleize_subtree(&mut self, g_index: Gindex) -> Result<[u8; 32]> {
         // Cast to usize to avoid `as usize` everywhere.
