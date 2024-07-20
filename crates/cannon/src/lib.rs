@@ -16,5 +16,3 @@ mod types;
 pub use types::Proof;
 
 mod utils;
-
-mod traces;

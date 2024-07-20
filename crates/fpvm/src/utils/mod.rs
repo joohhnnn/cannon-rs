@@ -4,16 +4,15 @@ use alloy_primitives::B256;
 
 pub mod patch;
 pub mod ser;
-pub(crate) mod traces;
 
 /// Concatenate two fixed sized arrays together into a new array with minimal reallocation.
 #[inline(always)]
-pub(crate) fn concat_fixed<T, const N: usize, const M: usize>(a: [T; N], b: [T; M]) -> [T; N + M]
+pub(crate) fn concat_fixed<T>(a: [T; 32], b: [T; 32]) -> [T; 64]
 where
     T: Copy + Default,
 {
-    let mut concatenated: [T; N + M] = [T::default(); N + M];
-    let (left, right) = concatenated.split_at_mut(N);
+    let mut concatenated: [T; 64] = [T::default(); 64];
+    let (left, right) = concatenated.split_at_mut(32);
     left.copy_from_slice(&a);
     right.copy_from_slice(&b);
     concatenated

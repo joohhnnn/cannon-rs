@@ -1,6 +1,7 @@
-// #![doc = include_str!("../README.md")]
-#![feature(generic_const_exprs)]
-#![allow(incomplete_features)]
+#![doc = include_str!("../README.md")]
+
+mod mips;
+pub use mips::InstrumentedState;
 
 mod memory;
 pub use memory::{CachedPage, Memory, MemoryReader};
@@ -17,9 +18,7 @@ pub use types::{
     STATE_WITNESS_SIZE,
 };
 
-mod mips;
-pub use mips::InstrumentedState;
-
+#[cfg(any(feature = "test-utils", test))]
 pub mod test_utils;
 
 #[cfg(feature = "evm")]

@@ -7,8 +7,12 @@ version = "0.1.0"
 authors = ["clabby"]
 
 [workspace.dependencies]
-# types
+# ETH types
 alloy-primitives = "0.7.7"
+
+# kona
+kona-preimage = { git = "https://github.com/ethereum-optimism/kona" }
+kona-common = { git = "https://github.com/ethereum-optimism/kona" }
 
 # ser
 serde = { version = "1.0.204", features = ["derive"] }
@@ -19,6 +23,7 @@ tokio = { version = "1.38.0", features = ["full"] }
 
 # misc
 anyhow = "1.0.86"
+tracing = "0.1.40"
 
 [profile.release]
 opt-level = 3

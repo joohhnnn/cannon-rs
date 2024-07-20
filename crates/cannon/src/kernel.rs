@@ -4,15 +4,13 @@ use crate::{gz::compress_bytes, types::Proof};
 use anyhow::{anyhow, Result};
 use cannon_fpvm::{state_hash, InstrumentedState};
 use kona_preimage::{HintRouter, PreimageFetcher};
+use std::time::Instant;
 use std::{
     fs::File,
     io::{BufWriter, Write},
     process::Child,
 };
 use tokio::{runtime::Runtime, task::JoinHandle};
-
-#[cfg(feature = "tracing")]
-use std::time::Instant;
 
 /// The [Kernel] struct contains the configuration for a Cannon kernel as well as
 /// the [PreimageOracle] and [InstrumentedState] instances that form it.
@@ -93,7 +91,6 @@ where
             let proof_fmt = self.proof_format.unwrap_or("%d.json.gz".to_string());
             let snapshot_fmt = self.snapshot_format.unwrap_or("%d.json.gz".to_string());
 
-            #[cfg(feature = "tracing")]
             let (info_at, start_step, start) = (
                 create_matcher(self.info_at.as_ref())?,
                 self.ins_state.state.step,
@@ -105,10 +102,9 @@ where
             while !self.ins_state.state.exited {
                 let step = self.ins_state.state.step;
 
-                #[cfg(feature = "tracing")]
                 if info_at.matches(step) {
                     let delta = start.elapsed();
-                    crate::traces::info!(
+                    tracing::info!(
                         target: "cannon::kernel",
                         "[ELAPSED: {}.{:03}s] step: {}, pc: {}, instruction: {:08x}, ips: {}, pages: {}, mem: {}",
                         delta.as_secs(),
@@ -123,26 +119,26 @@ where
                 }
 
                 if stop_at.matches(step) {
-                    crate::traces::info!(target: "cannon::kernel", "Stopping at step {}", step);
+                    tracing::info!(target: "cannon::kernel", "Stopping at step {}", step);
                     break;
                 }
 
                 if snapshot_at.matches(step) {
-                    crate::traces::info!(target: "cannon::kernel", "Writing snapshot at step {}", step);
+                    tracing::info!(target: "cannon::kernel", "Writing snapshot at step {}", step);
                     let ser_state = serde_json::to_vec(&self.ins_state.state).unwrap();
                     let snap_path = snapshot_fmt.replace("%d", &format!("{}", step));
                     io_tasks.push(tokio::task::spawn(async move {
                         let gz_state = compress_bytes(&ser_state)?;
                         let mut writer = BufWriter::new(File::create(snap_path)?);
                         writer.write_all(&gz_state)?;
-                        crate::traces::info!(target: "cannon::kernel", "Wrote snapshot at step {} successfully.", step);
+                        tracing::info!(target: "cannon::kernel", "Wrote snapshot at step {} successfully.", step);
 
                         Ok(())
                     }));
                 }
 
                 if proof_at.matches(step) {
-                    crate::traces::info!(target: "cannon::kernel", "Writing proof at step {}", step);
+                    tracing::info!(target: "cannon::kernel", "Writing proof at step {}", step);
 
                     let prestate_hash = state_hash(self.ins_state.state.encode_witness()?);
                     let step_witness = self
@@ -173,7 +169,7 @@ where
                         let mut writer = BufWriter::new(File::create(proof_path)?);
                         writer.write_all(ser_proof.as_bytes())?;
 
-                        crate::traces::info!(target: "cannon::kernel", "Wrote proof at step {} successfully.", step);
+                        tracing::info!(target: "cannon::kernel", "Wrote proof at step {} successfully.", step);
 
                         Ok(())
                     }));
@@ -203,7 +199,7 @@ where
             // Output the final state
             if let Some(output) = &self.output {
                 if !output.is_empty() {
-                    crate::traces::info!(target: "cannon::kernel", "Writing final state to {}", output);
+                    tracing::info!(target: "cannon::kernel", "Writing final state to {}", output);
                     let mut writer = BufWriter::new(File::create(output)?);
 
                     let ser_state = &serde_json::to_vec(&self.ins_state.state)?;
@@ -215,7 +211,7 @@ where
                 println!("{:?}", &self.ins_state.state);
             }
 
-            crate::traces::info!(target: "cannon::kernel", "Kernel exiting...");
+            tracing::info!(target: "cannon::kernel", "Kernel exiting...");
 
             // Wait for all of the i/o tasks to finish.
             for task in io_tasks {

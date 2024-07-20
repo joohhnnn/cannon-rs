@@ -1,13 +1,12 @@
 //! Testing utilities.
 
-use std::sync::Arc;
-
 use crate::{utils::concat_fixed, utils::keccak256};
 use alloy_primitives::hex;
 use anyhow::Result;
 use async_trait::async_trait;
 use kona_preimage::{HintRouter, PreimageFetcher, PreimageKey, PreimageKeyType};
 use rustc_hash::FxHashMap;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 /// Used in tests to write the results to

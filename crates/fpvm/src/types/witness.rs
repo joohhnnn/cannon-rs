@@ -76,7 +76,10 @@ impl StepWitness {
                 let preimage_value = &self.preimage_value.clone()?;
 
                 if preimage_value.len() > 32 + 8 {
-                    crate::error!(target: "fpvm::step_witness", "Local preimage value exceeds maximum size of 32 bytes with key 0x{:x}", B256::from(self.preimage_key?));
+                    tracing::error!(
+                        target: "fpvm::step_witness",
+                        "Local preimage value exceeds maximum size of 32 bytes with key 0x{:x}", B256::from(self.preimage_key?)
+                    );
                     return None;
                 }
 

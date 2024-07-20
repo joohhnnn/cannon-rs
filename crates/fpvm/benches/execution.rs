@@ -1,16 +1,18 @@
 use cannon_fpvm::{
     load_elf, patch_go, patch_stack,
     test_utils::{ClaimTestOracle, StaticOracle},
-    InstrumentedState, PreimageOracle,
+    InstrumentedState,
 };
 use criterion::{criterion_group, criterion_main, Bencher, Criterion};
+use kona_preimage::{HintRouter, PreimageFetcher};
 use pprof::criterion::{Output, PProfProfiler};
-use std::io::BufWriter;
+use std::{io::BufWriter, sync::Arc};
+use tokio::sync::Mutex;
 
 #[inline(always)]
 fn bench_exec(
     elf_bytes: &[u8],
-    oracle: impl PreimageOracle,
+    oracle: impl HintRouter + PreimageFetcher,
     compute_witness: bool,
     b: &mut Bencher,
 ) {
@@ -20,13 +22,17 @@ fn bench_exec(
 
     let out = BufWriter::new(Vec::default());
     let err = BufWriter::new(Vec::default());
-    let mut ins = InstrumentedState::new(state, oracle, out, err);
+    let ins = Arc::new(Mutex::new(InstrumentedState::new(state, oracle, out, err)));
 
-    b.iter(|| loop {
-        if ins.state.exited {
-            break;
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    b.to_async(rt).iter(|| async {
+        let mut ins = ins.lock().await;
+        loop {
+            if ins.state.exited {
+                break;
+            }
+            ins.step(compute_witness).await.unwrap();
         }
-        ins.step(compute_witness).unwrap();
     })
 }
 

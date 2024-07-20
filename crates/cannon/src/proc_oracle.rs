@@ -37,7 +37,7 @@ impl ProcessPreimageOracle {
     ) -> Result<(Self, Option<Child>)> {
         let cmd_str = cmd.display().to_string();
         let child = (!cmd_str.is_empty()).then(|| {
-            crate::info!(
+            tracing::info!(
                 "Starting preimage server process: {} {:?}",
                 cmd.display(),
                 args
@@ -54,7 +54,7 @@ impl ProcessPreimageOracle {
                     pipe_files.hint_write.as_raw_fd()
                 ];
 
-                crate::traces::info!(target: "cannon::preimage::server", "Starting preimage server process: {:?} with fds {:?}", args, fds);
+                tracing::info!(target: "cannon::preimage::server", "Starting preimage server process: {:?} with fds {:?}", args, fds);
 
                 command
                     .args(args)
