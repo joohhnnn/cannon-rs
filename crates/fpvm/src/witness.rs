@@ -50,13 +50,13 @@ impl Default for StepWitness {
 
 sol! {
     /// `PreimageOracle` loadLocalData function.
-    function loadLocalData(uint256,bytes32,uint256,uint256) external returns (bytes32);
+    function loadLocalData(uint256,bytes32,bytes32,uint256,uint256) external returns (bytes32);
 
     /// `PreimageOracle` loadKeccak256PreimagePart function.
     function loadKeccak256PreimagePart(uint256,bytes) external;
 
     /// `MIPS` step function.
-    function step(bytes,bytes) external returns (bytes32);
+    function step(bytes,bytes,bytes32) external returns (bytes32);
 }
 
 impl StepWitness {
@@ -92,9 +92,10 @@ impl StepWitness {
 
                 let call = loadLocalDataCall {
                     _0: B256::from(preimage_key).into(),
-                    _1: B256::from(tmp),
-                    _2: U256::from(preimage_value.len() - 8),
-                    _3: U256::from(self.preimage_offset?),
+                    _1: B256::ZERO, // constant local context
+                    _2: B256::from(tmp),
+                    _3: U256::from(preimage_value.len() - 8),
+                    _4: U256::from(self.preimage_offset?),
                 };
 
                 Some(call.abi_encode().into())
@@ -118,6 +119,7 @@ impl StepWitness {
         let call = stepCall {
             _0: self.state.to_vec().into(),
             _1: self.mem_proof.to_vec().into(),
+            _2: B256::ZERO, // constant local context
         };
 
         call.abi_encode().into()

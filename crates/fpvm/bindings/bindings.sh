@@ -30,13 +30,13 @@ MIPS_ARTIFACT="$CTB/forge-artifacts/MIPS.sol/MIPS.json"
 PREIMAGE_ARTIFACT="$CTB/forge-artifacts/PreimageOracle.sol/PreimageOracle.json"
 
 MIPS_BIN=$(cat $MIPS_ARTIFACT | jq -r '.bytecode.object')
-PREIMAGE_DEPLOYED_BIN=$(cat $PREIMAGE_ARTIFACT | jq -r '.deployedBytecode.object')
+PREIMAGE_BIN=$(cat $PREIMAGE_ARTIFACT | jq -r '.bytecode.object')
 
 echo "Removing old bindings..."
 rm $DIR/*.bin
 echo "Old bindings removed."
 
 echo -n "${MIPS_BIN:2}" > $DIR/mips_creation.bin
-echo -n "${PREIMAGE_DEPLOYED_BIN:2}" >> $DIR/preimage_oracle_deployed.bin
+echo -n "${PREIMAGE_BIN:2}" >> $DIR/preimage_creation.bin
 
 echo "Bindings generated successfully."
