@@ -96,7 +96,7 @@ pub fn load_elf(raw: &[u8]) -> Result<State> {
     Ok(state)
 }
 
-/// Patch a Go ELF file to work with mipsevm.
+/// Patch a Go ELF file to work with the Cannon FPVM.
 ///
 /// ### Takes
 /// - `elf`: The ELF file to patch

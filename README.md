@@ -34,18 +34,20 @@ Subsequently, it is compiled to MIPS to be ran on top of Cannon on-chain to prov
 native implementation of the MIPS thread context that mirrors the on-chain version, which enables the [op-challenger][op-challenger] to generate
 state commitments for an `op-program` execution trace and participate in dispute games.
 
-*TL;DR:*
-* It's Rust code
-* ...that was [originally Go code][cannon]
-* ...that runs an EVM
-* ...emulating a MIPS machine
-* ...running [compiled Go code][op-program]
-* ...that runs an EVM
+_TL;DR:_
+
+- It's Rust code
+- ...that was [originally Go code][cannon]
+- ...that runs an EVM
+- ...emulating a MIPS machine
+- ...running [compiled Go code][op-program]
+- ...that runs an EVM
 
 ## Overview
-* [`cannon-mipsevm`](./crates/mipsevm) - Contains the native implementation of the MIPS thread context emulator.
-* [`preimage-oracle`](./crates/preimage) - Rust bindings for interacting as client or sever over the Pre-image Oracle ABI.
-* [`cannon-contracts`](https://github.com/ethereum-optimism/optimism/tree/develop/packages/contracts-bedrock/src/cannon) - [*in OP monorepo*] Contains the Solidity implementation of the MIPS thread context and the Preimage Oracle.
+
+- [`cannon-fpvm`](./crates/fpvm) - Contains the native implementation of the MIPS thread context emulator.
+- [`preimage-oracle`](./crates/preimage) - Rust bindings for interacting as client or sever over the Pre-image Oracle ABI.
+- [`cannon-contracts`](https://github.com/ethereum-optimism/optimism/tree/develop/packages/contracts-bedrock/src/cannon) - [*in OP monorepo*] Contains the Solidity implementation of the MIPS thread context and the Preimage Oracle.
 
 ## Credits
 
@@ -54,27 +56,28 @@ credits for the original idea and reference implementation of this concept go to
 
 ## Benchmarks
 
-### `cannon-mipsevm` benchmarks
+### `cannon-fpvm` benchmarks
 
 The below benchmark was ran on a 2021 Macbook Pro with an M1 Max and 32 GB of unified memory
 on commit [`71b68d5`](https://github.com/anton-rs/cannon-rs/pull/17/commits/71b68d52fb858cfc544c1430b482aeaef460552e).
 
-| Benchmark Name             | `cannon` mean (Reference) | `cannon-rs` mean    |
-|----------------------------|---------------------------|---------------------|
-| Memory Merkle Root (25MB)  | 736.94 ms                 | 29.58 µs (-99%)     |
-| Memory Merkle Root (50MB)  | 1.54s                     | 7.25 ms (-99%)      |
-| Memory Merkle Root (100MB) | 3.34s                     | 273.76 ms (-91.8%)  |
-| Memory Merkle Root (200MB) | 6.30s                     | 1.65s (-73.81%)     |
+| Benchmark Name             | `cannon` mean (Reference) | `cannon-rs` mean   |
+| -------------------------- | ------------------------- | ------------------ |
+| Memory Merkle Root (25MB)  | 736.94 ms                 | 29.58 µs (-99%)    |
+| Memory Merkle Root (50MB)  | 1.54s                     | 7.25 ms (-99%)     |
+| Memory Merkle Root (100MB) | 3.34s                     | 273.76 ms (-91.8%) |
+| Memory Merkle Root (200MB) | 6.30s                     | 1.65s (-73.81%)    |
 
-*todo - execution benchmarks*
+_todo - execution benchmarks_
 
 ## Contributing
 
 To get started, a few dependencies are required:
-* [Rust toolchain][rustup]
-    * Recommended: [`cargo-nextest`][nextest]
-* [Go toolchain][golang]
-* [binutils][binutils]
+
+- [Rust toolchain][rustup]
+  - Recommended: [`cargo-nextest`][nextest]
+- [Go toolchain][golang]
+- [binutils][binutils]
 
 ### Testing
 
@@ -104,8 +107,9 @@ Rustdocs are available by running `cargo doc --open` after cloning the repo.
 ### Specification
 
 The specification for both Cannon and the preimage oracle can be found in the [Optimism monorepo][monorepo].
-* [Cannon specification][cannon-specs]
-* [Preimage oracle specification][fpp-specs]
+
+- [Cannon specification][cannon-specs]
+- [Preimage oracle specification][fpp-specs]
 
 ## Docker
 

@@ -4,7 +4,7 @@ use super::CannonSubcommandDispatcher;
 use alloy_primitives::B256;
 use anyhow::Result;
 use cannon::gz::decompress_bytes;
-use cannon_mipsevm::{State, StateWitnessHasher};
+use cannon_fpvm::{State, StateWitnessHasher};
 use clap::Args;
 use std::{fs, path::PathBuf};
 

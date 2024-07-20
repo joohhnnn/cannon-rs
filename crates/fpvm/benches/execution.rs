@@ -1,4 +1,4 @@
-use cannon_mipsevm::{
+use cannon_fpvm::{
     load_elf, patch_go, patch_stack,
     test_utils::{ClaimTestOracle, StaticOracle},
     InstrumentedState, PreimageOracle,

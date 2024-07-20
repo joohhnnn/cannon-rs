@@ -1,4 +1,4 @@
-use cannon_mipsevm::Memory;
+use cannon_fpvm::Memory;
 use criterion::{criterion_group, criterion_main, Criterion};
 use pprof::criterion::{Output, PProfProfiler};
 use rand::RngCore;

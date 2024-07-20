@@ -2,7 +2,7 @@
 
 use crate::{gz::compress_bytes, types::Proof, ChildWithFds};
 use anyhow::{anyhow, Result};
-use cannon_mipsevm::{InstrumentedState, PreimageOracle, StateWitnessHasher};
+use cannon_fpvm::{InstrumentedState, PreimageOracle, StateWitnessHasher};
 use std::{
     fs::File,
     io::{BufWriter, Write},

@@ -75,14 +75,14 @@ impl StepWitness {
 
         match KeyType::from(preimage_key[0]) {
             KeyType::_Illegal => {
-                crate::error!(target: "mipsevm::step_witness", "Illegal key type");
+                crate::error!(target: "fpvm::step_witness", "Illegal key type");
                 None
             }
             KeyType::Local => {
                 let preimage_value = &self.preimage_value.clone()?;
 
                 if preimage_value.len() > 32 + 8 {
-                    crate::error!(target: "mipsevm::step_witness", "Local preimage value exceeds maximum size of 32 bytes with key 0x{:x}", B256::from(self.preimage_key?));
+                    crate::error!(target: "fpvm::step_witness", "Local preimage value exceeds maximum size of 32 bytes with key 0x{:x}", B256::from(self.preimage_key?));
                     return None;
                 }
 
@@ -102,7 +102,7 @@ impl StepWitness {
             KeyType::GlobalKeccak => {
                 let call = loadKeccak256PreimagePartCall {
                     _0: U256::from(self.preimage_offset?),
-                    _1: self.preimage_value.clone()?[8..].to_vec(),
+                    _1: self.preimage_value.clone()?[8..].to_vec().into(),
                 };
 
                 Some(call.abi_encode().into())
@@ -116,8 +116,8 @@ impl StepWitness {
     /// - The ABI encoded input to the MIPS step function.
     pub fn encode_step_input(&self) -> Bytes {
         let call = stepCall {
-            _0: self.state.to_vec(),
-            _1: self.mem_proof.to_vec(),
+            _0: self.state.to_vec().into(),
+            _1: self.mem_proof.to_vec().into(),
         };
 
         call.abi_encode().into()

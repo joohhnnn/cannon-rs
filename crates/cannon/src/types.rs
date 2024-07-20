@@ -1,6 +1,6 @@
 //! This module contains the types for the `cannon` interface.
 
-use cannon_mipsevm::StateWitness;
+use cannon_fpvm::StateWitness;
 use preimage_oracle::ReadWritePair;
 use serde::{Deserialize, Serialize};
 use std::process::Child;
@@ -12,7 +12,7 @@ pub struct Proof {
     pub step: u64,
     pub pre: [u8; 32],
     pub post: [u8; 32],
-    #[serde(with = "cannon_mipsevm::ser::state_witness_hex")]
+    #[serde(with = "cannon_fpvm::ser::state_witness_hex")]
     pub state_data: StateWitness,
     pub proof_data: Vec<u8>,
     pub step_input: Vec<u8>,

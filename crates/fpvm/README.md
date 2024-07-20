@@ -1,4 +1,4 @@
-# `cannon-mipsevm`
+# `cannon-fpvm`
 
 Supported 55 instructions:
 | Category             | Instruction   | Description                                  |

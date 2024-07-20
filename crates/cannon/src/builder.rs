@@ -2,7 +2,7 @@
 
 use crate::{gz, ChildWithFds, Kernel, ProcessPreimageOracle};
 use anyhow::{anyhow, Result};
-use cannon_mipsevm::{InstrumentedState, State};
+use cannon_fpvm::{InstrumentedState, State};
 use std::{
     fs::{self, File},
     io::{self, BufReader, Read, Stderr, Stdout},

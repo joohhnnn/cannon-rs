@@ -1,4 +1,4 @@
-//! Serialization utilities for the `cannon-mipsevm` crate.
+//! Serialization utilities for the `cannon-fpvm` crate.
 
 /// Generates a hex string serialization module for a fixed-size byte array.
 macro_rules! fixed_hex_ser {

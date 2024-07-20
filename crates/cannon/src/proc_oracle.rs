@@ -1,7 +1,7 @@
 //! This module contains the [PreimageServer] struct and its associated methods.
 
 use anyhow::Result;
-use cannon_mipsevm::PreimageOracle;
+use cannon_fpvm::PreimageOracle;
 use command_fds::{CommandFdExt, FdMapping};
 use preimage_oracle::{Hint, HintWriter, Hinter, Oracle, OracleClient, RawKey, ReadWritePair};
 use std::{
@@ -12,8 +12,8 @@ use std::{
 };
 
 /// The [ProcessPreimageOracle] struct represents a preimage oracle process that communicates with
-/// the mipsevm via a few special file descriptors. This process is responsible for preparing and
-/// sending the results of preimage requests to the mipsevm process.
+/// the fault proof VM via a few special file descriptors. This process is responsible for preparing
+/// and sending the results of preimage requests to the FPVM process.
 pub struct ProcessPreimageOracle {
     /// The preimage oracle client
     pub preimage_client: OracleClient,
@@ -41,7 +41,7 @@ impl ProcessPreimageOracle {
             let mut command = Command::new(cmd);
             let command = {
                 // Grab the file descriptors for the hint and preimage channels
-                // that the server will use to communicate with the mipsevm
+                // that the server will use to communicate with the FPVM
                 let fds = [
                     server_io[0].reader().as_raw_fd(),
                     server_io[0].writer().as_raw_fd(),

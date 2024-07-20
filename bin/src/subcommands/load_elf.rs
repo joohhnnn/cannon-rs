@@ -4,7 +4,7 @@ use super::CannonSubcommandDispatcher;
 use alloy_primitives::B256;
 use anyhow::Result;
 use cannon::gz::compress_bytes;
-use cannon_mipsevm::{load_elf, patch_go, patch_stack, StateWitnessHasher};
+use cannon_fpvm::{load_elf, patch_go, patch_stack, StateWitnessHasher};
 use clap::Args;
 use std::{
     fmt::Display,
