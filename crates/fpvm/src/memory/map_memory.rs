@@ -1,10 +1,8 @@
 //! The memory module contains the [Memory] data structure and its functionality for the emulator.
 
 use crate::{
-    page::{self},
-    types::SharedCachedPage,
-    utils::keccak_concat_hashes,
-    Address, Gindex, Page, PageIndex,
+    memory::page, types::SharedCachedPage, utils::keccak_concat_hashes, Address, Gindex, Page,
+    PageIndex,
 };
 use anyhow::Result;
 use rustc_hash::FxHashMap;

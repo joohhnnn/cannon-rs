@@ -1,6 +1,6 @@
 //! This module contains the data structure for the state of the MIPS emulator.
 
-use crate::{witness::STATE_WITNESS_SIZE, Memory, StateWitness, VMStatus};
+use crate::{Memory, StateWitness, VMStatus, STATE_WITNESS_SIZE};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 

@@ -3,13 +3,6 @@
 use anyhow::Result;
 use preimage_oracle::Hint;
 
-/// A [StateWitnessHasher] is a trait describing the functionality of a type
-/// that computes a witness hash.
-pub trait StateWitnessHasher {
-    /// Compute the [crate::StateWitness] hash.
-    fn state_hash(&self) -> [u8; 32];
-}
-
 /// A [PreimageOracle] is a trait describing the functionality of a preimage
 /// server.
 pub trait PreimageOracle {

@@ -4,7 +4,7 @@ use super::CannonSubcommandDispatcher;
 use alloy_primitives::B256;
 use anyhow::Result;
 use cannon::gz::compress_bytes;
-use cannon_fpvm::{load_elf, patch_go, patch_stack, StateWitnessHasher};
+use cannon_fpvm::{load_elf, patch_go, patch_stack, state_hash};
 use clap::Args;
 use std::{
     fmt::Display,
@@ -89,7 +89,7 @@ impl CannonSubcommandDispatcher for LoadElfArgs {
             }
         }
 
-        tracing::info!(target: "cannon-cli::load-elf", "Patched the ELF file and dumped the State successfully. state hash: {} mem size: {} pages: {}", B256::from(state.encode_witness()?.state_hash()), state.memory.usage(), state.memory.page_count());
+        tracing::info!(target: "cannon-cli::load-elf", "Patched the ELF file and dumped the State successfully. state hash: {} mem size: {} pages: {}", B256::from(state_hash(state.encode_witness()?)), state.memory.usage(), state.memory.page_count());
 
         Ok(())
     }

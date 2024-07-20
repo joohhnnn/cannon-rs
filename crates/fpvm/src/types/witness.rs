@@ -1,23 +1,21 @@
 //! This module contains the various witness types.
 
-use crate::{utils::keccak256, State, StateWitness, StateWitnessHasher};
-use alloy_primitives::{B256, U256};
+use crate::{utils::keccak256, State, StateWitness};
+use alloy_primitives::{Bytes, B256, U256};
 use alloy_sol_types::{sol, SolCall};
 use preimage_oracle::KeyType;
-use revm::primitives::Bytes;
 
 /// The size of an encoded [StateWitness] in bytes.
 pub const STATE_WITNESS_SIZE: usize = 226;
 
-impl StateWitnessHasher for StateWitness {
-    fn state_hash(&self) -> [u8; 32] {
-        let mut hash = keccak256(self);
-        let offset = 32 * 2 + 4 * 6;
-        let exit_code = self[offset];
-        let exited = self[offset + 1] == 1;
-        hash[0] = State::vm_status(exited, exit_code) as u8;
-        *hash
-    }
+/// Compute the hash of the [StateWitness]
+pub fn state_hash(witness: StateWitness) -> [u8; 32] {
+    let mut hash = keccak256(witness);
+    let offset = 32 * 2 + 4 * 6;
+    let exit_code = witness[offset];
+    let exited = witness[offset + 1] == 1;
+    hash[0] = State::vm_status(exited, exit_code) as u8;
+    *hash
 }
 
 /// A [StepWitness] is produced after each instruction step of the MIPS emulator. It contains
@@ -39,7 +37,7 @@ pub struct StepWitness {
 impl Default for StepWitness {
     fn default() -> Self {
         Self {
-            state: [0u8; crate::witness::STATE_WITNESS_SIZE],
+            state: [0u8; STATE_WITNESS_SIZE],
             mem_proof: Vec::with_capacity(28 * 32 * 2),
             preimage_key: Default::default(),
             preimage_value: Default::default(),

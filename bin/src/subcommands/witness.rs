@@ -4,7 +4,7 @@ use super::CannonSubcommandDispatcher;
 use alloy_primitives::B256;
 use anyhow::Result;
 use cannon::gz::decompress_bytes;
-use cannon_fpvm::{State, StateWitnessHasher};
+use cannon_fpvm::{state_hash, State};
 use clap::Args;
 use std::{fs, path::PathBuf};
 
@@ -31,7 +31,7 @@ impl CannonSubcommandDispatcher for WitnessArgs {
         tracing::info!(target: "cannon-cli::witness", "Loaded state JSON dump and deserialized the State");
 
         let witness = state.encode_witness()?;
-        let witness_hash = witness.state_hash();
+        let witness_hash = state_hash(witness);
 
         tracing::info!(target: "cannon-cli::witness", "Encoded witness and computed witness hash: {}", B256::from(witness_hash));
 

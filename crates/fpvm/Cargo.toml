@@ -22,13 +22,17 @@ alloy-sol-types = "0.7.7"
 # misc
 once_cell = "1.19.0"
 elf = "0.7.4"
-revm = "12.1.0"
-tracing = { version = "0.1.40", optional = true }
 
 # hashing
 rustc-hash = "2.0.0"
 xkcp-rs = { git = "https://github.com/DaniPopes/xkcp-rs", rev = "40447a5" }
 keccak256-aarch64-simd = { git = "https://github.com/clabby/keccak256-aarch64", rev = "5c4c8f8", optional = true }
+
+# tracing
+tracing = { version = "0.1.40", optional = true }
+
+# evm
+revm = { version = "12.1.0", optional = true }
 
 [dev-dependencies]
 rand = "0.8.5"
@@ -38,6 +42,7 @@ proptest = "1.4.0"
 
 [features]
 tracing = ["dep:tracing"]
+evm = ["dep:revm"]
 simd-keccak = ["dep:keccak256-aarch64-simd"]
 
 [[bench]]

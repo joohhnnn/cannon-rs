@@ -2,7 +2,7 @@
 
 use crate::{gz::compress_bytes, types::Proof, ChildWithFds};
 use anyhow::{anyhow, Result};
-use cannon_fpvm::{InstrumentedState, PreimageOracle, StateWitnessHasher};
+use cannon_fpvm::{state_hash, InstrumentedState, PreimageOracle};
 use std::{
     fs::File,
     io::{BufWriter, Write},
@@ -137,12 +137,12 @@ where
                 if proof_at.matches(step) {
                     crate::traces::info!(target: "cannon::kernel", "Writing proof at step {}", step);
 
-                    let prestate_hash = self.ins_state.state.encode_witness()?.state_hash();
+                    let prestate_hash = state_hash(self.ins_state.state.encode_witness()?);
                     let step_witness = self
                         .ins_state
                         .step(true)?
                         .ok_or(anyhow!("No step witness"))?;
-                    let poststate_hash = self.ins_state.state.encode_witness()?.state_hash();
+                    let poststate_hash = state_hash(self.ins_state.state.encode_witness()?);
 
                     let proof_path = proof_fmt.replace("%d", &format!("{}", step));
                     io_tasks.push(tokio::task::spawn(async move {

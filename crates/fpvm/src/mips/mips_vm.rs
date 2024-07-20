@@ -1,9 +1,8 @@
 //! This module contains the MIPS VM implementation for the [InstrumentedState].
 
 use crate::{
-    memory::MemoryReader,
+    memory::{page, MemoryReader},
     mips::instrumented::{MIPS_EBADF, MIPS_EINVAL},
-    page,
     types::Syscall,
     Address, Fd, InstrumentedState, PreimageOracle,
 };

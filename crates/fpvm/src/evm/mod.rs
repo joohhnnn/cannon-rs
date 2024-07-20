@@ -1,7 +1,7 @@
 //! This module contains a wrapper around a [revm] inspector with an in-memory backend
 //! that has the MIPS & PreimageOracle smart contracts deployed at deterministic addresses.
 
-use crate::{StateWitness, StateWitnessHasher, StepWitness};
+use crate::{state_hash, StateWitness, StepWitness};
 use anyhow::Result;
 use revm::{
     db::{CacheDB, EmptyDB},
@@ -172,11 +172,11 @@ impl<'a> MipsEVM<'a, CacheDB<EmptyDB>> {
 
             let post_state: StateWitness = logs[0].data.data.to_vec().as_slice().try_into()?;
 
-            if post_state.state_hash().as_slice() != output.as_slice() {
+            if state_hash(post_state).as_slice() != output.as_slice() {
                 anyhow::bail!(
                     "Post-state hash does not match state hash in log: {:x} != {:x}",
                     output,
-                    B256::from(post_state.state_hash())
+                    B256::from(state_hash(post_state))
                 );
             }
 
@@ -235,11 +235,10 @@ impl<'a> MipsEVM<'a, CacheDB<EmptyDB>> {
 mod test {
     use super::*;
     use crate::{
-        patch,
+        load_elf, patch_go, patch_stack,
         test_utils::{ClaimTestOracle, StaticOracle, BASE_ADDR_END, END_ADDR},
         Address, InstrumentedState, Memory, State,
     };
-    use revm::primitives::ExecutionResult;
     use std::{
         fs,
         io::{self, BufReader, BufWriter},
@@ -436,9 +435,9 @@ mod test {
         mips_evm.try_init().unwrap();
 
         let elf_bytes = include_bytes!("../../../../example/bin/hello.elf");
-        let mut state = patch::load_elf(elf_bytes).unwrap();
-        patch::patch_go(elf_bytes, &mut state).unwrap();
-        patch::patch_stack(&mut state).unwrap();
+        let mut state = load_elf(elf_bytes).unwrap();
+        patch_go(elf_bytes, &mut state).unwrap();
+        patch_stack(&mut state).unwrap();
 
         let mut instrumented =
             InstrumentedState::new(state, StaticOracle::default(), io::stdout(), io::stderr());
@@ -477,9 +476,9 @@ mod test {
         mips_evm.try_init().unwrap();
 
         let elf_bytes = include_bytes!("../../../../example/bin/claim.elf");
-        let mut state = patch::load_elf(elf_bytes).unwrap();
-        patch::patch_go(elf_bytes, &mut state).unwrap();
-        patch::patch_stack(&mut state).unwrap();
+        let mut state = load_elf(elf_bytes).unwrap();
+        patch_go(elf_bytes, &mut state).unwrap();
+        patch_stack(&mut state).unwrap();
 
         let out_buf = BufWriter::new(Vec::default());
         let err_buf = BufWriter::new(Vec::default());

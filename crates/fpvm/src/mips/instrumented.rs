@@ -115,8 +115,8 @@ mod test {
     use alloy_primitives::keccak256;
 
     use crate::test_utils::{ClaimTestOracle, BASE_ADDR_END, END_ADDR};
-    use crate::witness::STATE_WITNESS_SIZE;
-    use crate::{load_elf, patch, StateWitnessHasher};
+    use crate::STATE_WITNESS_SIZE;
+    use crate::{load_elf, patch_go, patch_stack, state_hash};
     use crate::{test_utils::StaticOracle, Address, InstrumentedState, Memory, State};
     use std::io::BufWriter;
     use std::{
@@ -197,7 +197,7 @@ mod test {
     }
 
     #[test]
-    fn state_hash() {
+    fn test_state_hash() {
         let cases = [
             (false, 0),
             (false, 1),
@@ -217,7 +217,7 @@ mod test {
             };
 
             let actual_witness = state.encode_witness().unwrap();
-            let actual_state_hash = actual_witness.state_hash();
+            let actual_state_hash = state_hash(actual_witness);
             assert_eq!(actual_witness.len(), STATE_WITNESS_SIZE);
 
             let mut expected_witness = [0u8; STATE_WITNESS_SIZE];
@@ -241,8 +241,8 @@ mod test {
     fn test_hello() {
         let elf_bytes = include_bytes!("../../../../example/bin/hello.elf");
         let mut state = load_elf(elf_bytes).unwrap();
-        patch::patch_go(elf_bytes, &mut state).unwrap();
-        patch::patch_stack(&mut state).unwrap();
+        patch_go(elf_bytes, &mut state).unwrap();
+        patch_stack(&mut state).unwrap();
 
         let out = BufWriter::new(Vec::default());
         let err = BufWriter::new(Vec::default());
@@ -273,8 +273,8 @@ mod test {
     fn test_claim() {
         let elf_bytes = include_bytes!("../../../../example/bin/claim.elf");
         let mut state = load_elf(elf_bytes).unwrap();
-        patch::patch_go(elf_bytes, &mut state).unwrap();
-        patch::patch_stack(&mut state).unwrap();
+        patch_go(elf_bytes, &mut state).unwrap();
+        patch_stack(&mut state).unwrap();
 
         let out = BufWriter::new(Vec::default());
         let err = BufWriter::new(Vec::default());

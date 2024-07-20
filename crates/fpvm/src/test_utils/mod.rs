@@ -6,8 +6,6 @@ use anyhow::Result;
 use preimage_oracle::{Hint, Keccak256Key, Key, LocalIndexKey};
 use rustc_hash::FxHashMap;
 
-pub mod evm;
-
 /// Used in tests to write the results to
 pub const BASE_ADDR_END: u32 = 0xBF_FF_FF_F0;
 

@@ -3,14 +3,20 @@
 use crate::CachedPage;
 use std::{cell::RefCell, rc::Rc};
 
+mod state;
+pub use state::State;
+
+mod witness;
+pub use witness::{state_hash, StepWitness, STATE_WITNESS_SIZE};
+
 /// A [Page] is a portion of memory of size `PAGE_SIZE`.
-pub type Page = [u8; crate::page::PAGE_SIZE];
+pub type Page = [u8; crate::memory::page::PAGE_SIZE];
 
 /// A [CachedPage] with shared ownership.
 pub type SharedCachedPage = Rc<RefCell<CachedPage>>;
 
 /// A [StateWitness] is an encoded commitment to the current [crate::State] of the MIPS emulator.
-pub type StateWitness = [u8; crate::witness::STATE_WITNESS_SIZE];
+pub type StateWitness = [u8; STATE_WITNESS_SIZE];
 
 /// A [PageIndex] is the index of a [Page] within the [crate::Memory] mappings.
 pub type PageIndex = u64;
