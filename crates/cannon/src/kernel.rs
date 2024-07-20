@@ -2,13 +2,13 @@
 
 use crate::{gz::compress_bytes, types::Proof};
 use anyhow::{anyhow, Result};
-use cannon_fpvm::{state_hash, InstrumentedState};
+use cannon_fpvm::{types::state_hash, InstrumentedState};
 use kona_preimage::{HintRouter, PreimageFetcher};
-use std::time::Instant;
 use std::{
     fs::File,
     io::{BufWriter, Write},
     process::Child,
+    time::Instant,
 };
 use tokio::{runtime::Runtime, task::JoinHandle};
 
@@ -23,10 +23,10 @@ where
 {
     /// The instrumented state that the kernel will run.
     ins_state: InstrumentedState<O, E, P>,
-    /// The server's process coupled with the preimage server's IO. We hold on to these so that they
-    /// are not dropped until the kernel is dropped, preventing a broken pipe before the kernel is
-    /// dropped. The other side of the bidirectional channel is owned by the [InstrumentedState],
-    /// which is also dropped when the kernel is dropped.
+    /// The server's process coupled with the preimage server's IO. We hold on to these so that
+    /// they are not dropped until the kernel is dropped, preventing a broken pipe before the
+    /// kernel is dropped. The other side of the bidirectional channel is owned by the
+    /// [InstrumentedState], which is also dropped when the kernel is dropped.
     server_proc: Option<Child>,
     /// The path to the input JSON state.
     input: String,

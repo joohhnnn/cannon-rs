@@ -1,6 +1,9 @@
 //! This module contains the data structure for a [Page] within the MIPS emulator's [Memory].
 
-use crate::{utils::keccak_concat_hashes, Address, Gindex, Page};
+use crate::{
+    types::{Address, Gindex, Page},
+    utils::keccak_concat_hashes,
+};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 
@@ -47,11 +50,7 @@ pub struct CachedPage {
 
 impl Default for CachedPage {
     fn default() -> Self {
-        Self {
-            data: [0; PAGE_SIZE],
-            cache: *DEFAULT_CACHE,
-            valid: [true; PAGE_SIZE / 32],
-        }
+        Self { data: [0; PAGE_SIZE], cache: *DEFAULT_CACHE, valid: [true; PAGE_SIZE / 32] }
     }
 }
 
@@ -177,39 +176,24 @@ mod test {
         let pre = page.merkle_root().unwrap();
         page.data[42] = 0xcd;
         let post = page.merkle_root().unwrap();
-        assert_eq!(
-            pre, post,
-            "Pre and post state should be equal until the cache is invalidated"
-        );
+        assert_eq!(pre, post, "Pre and post state should be equal until the cache is invalidated");
 
         page.invalidate(42).unwrap();
         let post_b = page.merkle_root().unwrap();
-        assert_ne!(
-            post, post_b,
-            "Pre and post state should be different after cache invalidation"
-        );
+        assert_ne!(post, post_b, "Pre and post state should be different after cache invalidation");
 
         page.data[2000] = 0xef;
         page.invalidate(42).unwrap();
         let post_c = page.merkle_root().unwrap();
-        assert_eq!(
-            post_b, post_c,
-            "Local invalidation is not global invalidation."
-        );
+        assert_eq!(post_b, post_c, "Local invalidation is not global invalidation.");
 
         page.invalidate(2000).unwrap();
         let post_d = page.merkle_root().unwrap();
-        assert_ne!(
-            post_c, post_d,
-            "Multiple invalidations should change the root."
-        );
+        assert_ne!(post_c, post_d, "Multiple invalidations should change the root.");
 
         page.data[1000] = 0xff;
         page.invalidate_full();
         let post_e = page.merkle_root().unwrap();
-        assert_ne!(
-            post_d, post_e,
-            "Full invalidation should always change the root."
-        );
+        assert_ne!(post_d, post_e, "Full invalidation should always change the root.");
     }
 }

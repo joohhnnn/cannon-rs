@@ -1,7 +1,7 @@
 //! This module contains a wrapper around a [revm] inspector with an in-memory backend
 //! that has the MIPS & PreimageOracle smart contracts deployed at deterministic addresses.
 
-use crate::{state_hash, StateWitness, StepWitness};
+use crate::types::{state_hash, StateWitness, StepWitness};
 use anyhow::Result;
 use revm::{
     db::{CacheDB, EmptyDB},
@@ -23,9 +23,10 @@ pub const MIPS_CREATION_CODE: &str = include_str!("../../bindings/mips_creation.
 pub const PREIMAGE_ORACLE_DEPLOYED_CODE: &str =
     include_str!("../../bindings/preimage_creation.bin");
 
-/// A wrapper around a [revm] interpreter with an in-memory backend that has the MIPS & PreimageOracle
-/// smart contracts deployed at deterministic addresses. This is used for differential testing the
-/// implementation of the MIPS VM in this crate against the smart contract implementations.
+/// A wrapper around a [revm] interpreter with an in-memory backend that has the MIPS &
+/// PreimageOracle smart contracts deployed at deterministic addresses. This is used for
+/// differential testing the implementation of the MIPS VM in this crate against the smart contract
+/// implementations.
 pub struct MipsEVM<'a, DB: Database> {
     pub inner: Evm<'a, (), DB>,
 }
@@ -131,16 +132,10 @@ impl<'a> MipsEVM<'a, CacheDB<EmptyDB>> {
                 witness.preimage_offset
             );
 
-            let preimage_oracle_input =
-                witness
-                    .encode_preimage_oracle_input()
-                    .ok_or(anyhow::anyhow!(
-                        "Failed to ABI encode preimage oracle input."
-                    ))?;
-            self.fill_tx_env(
-                TransactTo::Call(PREIMAGE_ORACLE_ADDR.into()),
-                preimage_oracle_input,
-            );
+            let preimage_oracle_input = witness
+                .encode_preimage_oracle_input()
+                .ok_or(anyhow::anyhow!("Failed to ABI encode preimage oracle input."))?;
+            self.fill_tx_env(TransactTo::Call(PREIMAGE_ORACLE_ADDR.into()), preimage_oracle_input);
             self.inner.transact_commit().map_err(|_| {
                 anyhow::anyhow!("Failed to commit preimage to PreimageOracle contract")
             })?;
@@ -235,9 +230,10 @@ impl<'a> MipsEVM<'a, CacheDB<EmptyDB>> {
 mod test {
     use super::*;
     use crate::{
-        load_elf, patch_go, patch_stack,
+        utils::patch::{load_elf, patch_go, patch_stack},
         test_utils::{ClaimTestOracle, StaticOracle, BASE_ADDR_END, END_ADDR},
-        Address, InstrumentedState, Memory, State,
+        types::{Address, State},
+        InstrumentedState, Memory
     };
     use std::{
         fs,
@@ -273,10 +269,7 @@ mod test {
                     state.memory = Memory::default();
                     state
                 };
-                state
-                    .memory
-                    .set_memory_range(0, BufReader::new(program_mem.as_slice()))
-                    .unwrap();
+                state.memory.set_memory_range(0, BufReader::new(program_mem.as_slice())).unwrap();
 
                 // Set the return address ($ra) to jump into when the test completes.
                 state.registers[31] = END_ADDR;
@@ -343,19 +336,9 @@ mod test {
 
         let cases = [
             ("j MSB set target", 0, 4, 0x0A_00_00_02),
-            (
-                "j non-zero PC region",
-                0x10_00_00_00,
-                0x10_00_00_04,
-                0x08_00_00_02,
-            ),
+            ("j non-zero PC region", 0x10_00_00_00, 0x10_00_00_04, 0x08_00_00_02),
             ("jal MSB set target", 0, 4, 0x0E_00_00_02),
-            (
-                "jal non-zero PC region",
-                0x10_00_00_00,
-                0x10_00_00_04,
-                0x0C_00_00_02,
-            ),
+            ("jal non-zero PC region", 0x10_00_00_00, 0x10_00_00_04, 0x0C_00_00_02),
         ];
 
         for (name, pc, next_pc, instruction) in cases {
@@ -395,10 +378,7 @@ mod test {
         for (name, next_pc, instruction) in cases {
             println!(" -> Running test: {name}");
 
-            let mut state = State {
-                next_pc: next_pc as Address,
-                ..Default::default()
-            };
+            let mut state = State { next_pc: next_pc as Address, ..Default::default() };
             state.memory.set_memory(0, instruction).unwrap();
 
             // Set the return address ($ra) to jump to when the test completes.
@@ -448,11 +428,8 @@ mod test {
             }
 
             if i % 1000 == 0 {
-                let instruction = instrumented
-                    .state
-                    .memory
-                    .get_memory(instrumented.state.pc as Address)
-                    .unwrap();
+                let instruction =
+                    instrumented.state.memory.get_memory(instrumented.state.pc as Address).unwrap();
                 println!(
                     "step: {} pc: 0x{:08x} instruction: {:08x}",
                     instrumented.state.step, instrumented.state.pc, instruction
@@ -492,11 +469,8 @@ mod test {
             }
 
             if i % 1000 == 0 {
-                let instruction = instrumented
-                    .state
-                    .memory
-                    .get_memory(instrumented.state.pc as Address)
-                    .unwrap();
+                let instruction =
+                    instrumented.state.memory.get_memory(instrumented.state.pc as Address).unwrap();
                 println!(
                     "step: {} pc: 0x{:08x} instruction: {:08x}",
                     instrumented.state.step, instrumented.state.pc, instruction
@@ -523,9 +497,6 @@ mod test {
                 ClaimTestOracle::S * ClaimTestOracle::A + ClaimTestOracle::B
             )
         );
-        assert_eq!(
-            String::from_utf8(instrumented.std_err.buffer().to_vec()).unwrap(),
-            "started!"
-        );
+        assert_eq!(String::from_utf8(instrumented.std_err.buffer().to_vec()).unwrap(), "started!");
     }
 }

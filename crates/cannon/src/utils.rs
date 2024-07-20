@@ -33,30 +33,18 @@ pub(crate) fn create_native_pipes() -> Result<(PipeHandle, PipeHandle, NativePip
     let (hint_reader, hint_writer) = create_temp_files()?;
     let preimage_pipe = PipeHandle::new(
         FileDescriptor::Wildcard(
-            po_reader
-                .as_raw_fd()
-                .try_into()
-                .map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
+            po_reader.as_raw_fd().try_into().map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
         ),
         FileDescriptor::Wildcard(
-            po_writer
-                .as_raw_fd()
-                .try_into()
-                .map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
+            po_writer.as_raw_fd().try_into().map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
         ),
     );
     let hint_pipe = PipeHandle::new(
         FileDescriptor::Wildcard(
-            hint_reader
-                .as_raw_fd()
-                .try_into()
-                .map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
+            hint_reader.as_raw_fd().try_into().map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
         ),
         FileDescriptor::Wildcard(
-            hint_writer
-                .as_raw_fd()
-                .try_into()
-                .map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
+            hint_writer.as_raw_fd().try_into().map_err(|e| anyhow!("Failed to get raw FD: {e}"))?,
         ),
     );
 

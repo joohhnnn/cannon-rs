@@ -1,6 +1,9 @@
 //! This module contains utilities for loading ELF files into [State] objects.
 
-use crate::{memory::page, Address, State};
+use crate::{
+    memory::page,
+    types::{Address, State},
+};
 use anyhow::Result;
 use elf::{abi::PT_LOAD, endian::AnyEndian, ElfBytes};
 use std::io::{self, Cursor, Read};
@@ -20,7 +23,8 @@ pub(crate) const GO_SYMBOLS: [&str; 14] = [
     "github.com/prometheus/client_model/go.init.0",
     "github.com/prometheus/client_model/go.init.1",
     "flag.init", // skip flag pkg init, we need to debug arg-processing more to see why this fails
-    "runtime.check", // We need to patch this out, we don't pass float64nan because we don't support floats
+    "runtime.check", /* We need to patch this out, we don't pass float64nan because we don't support
+                  * floats */
 ];
 
 /// Load a raw ELF file into a [State] object.
@@ -41,9 +45,7 @@ pub fn load_elf(raw: &[u8]) -> Result<State> {
         ..Default::default()
     };
 
-    let headers = elf
-        .segments()
-        .ok_or(anyhow::anyhow!("Failed to load section headers"))?;
+    let headers = elf.segments().ok_or(anyhow::anyhow!("Failed to load section headers"))?;
 
     for (i, header) in headers.iter().enumerate() {
         if header.p_type == 0x70000003 {
@@ -88,9 +90,7 @@ pub fn load_elf(raw: &[u8]) -> Result<State> {
             );
         }
 
-        state
-            .memory
-            .set_memory_range(header.p_vaddr as u32, reader)?;
+        state.memory.set_memory_range(header.p_vaddr as u32, reader)?;
     }
 
     Ok(state)
@@ -107,9 +107,8 @@ pub fn load_elf(raw: &[u8]) -> Result<State> {
 /// - `Err(_)` if the patch failed
 pub fn patch_go(raw: &[u8], state: &mut State) -> Result<()> {
     let elf = ElfBytes::<AnyEndian>::minimal_parse(raw)?;
-    let (parsing_table, string_table) = elf
-        .symbol_table()?
-        .ok_or(anyhow::anyhow!("Failed to load ELF symbol table"))?;
+    let (parsing_table, string_table) =
+        elf.symbol_table()?.ok_or(anyhow::anyhow!("Failed to load ELF symbol table"))?;
 
     for symbol in parsing_table {
         let symbol_idx = symbol.st_name;
@@ -166,15 +165,14 @@ pub fn patch_stack(state: &mut State) -> Result<()> {
     store_mem(state, ptr + 4 * 8, 0)?; // auxv[term] = 0
 
     // 16 bytes of "randomness"
-    state
-        .memory
-        .set_memory_range(ptr + 4 * 9, b"4;byfairdiceroll".as_slice())?;
+    state.memory.set_memory_range(ptr + 4 * 9, b"4;byfairdiceroll".as_slice())?;
 
     Ok(())
 }
 
-/// A multi reader is a reader that reads from the first reader until it returns 0, then reads from the second reader.
-pub struct MultiReader<R1: Read, R2: Read>(R1, R2);
+/// A multi reader is a reader that reads from the first reader until it returns 0, then reads from
+/// the second reader.
+struct MultiReader<R1: Read, R2: Read>(R1, R2);
 
 impl<R1: Read, R2: Read> Read for MultiReader<R1, R2> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {

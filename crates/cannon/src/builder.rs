@@ -2,7 +2,7 @@
 
 use crate::{gz, Kernel, ProcessPreimageOracle};
 use anyhow::{anyhow, Result};
-use cannon_fpvm::{InstrumentedState, State};
+use cannon_fpvm::{types::State, InstrumentedState};
 use std::{
     fs::{self, File},
     io::{self, BufReader, Read, Stderr, Stdout},
@@ -42,8 +42,8 @@ impl KernelBuilder {
         let f = File::open(&self.input)?;
         let f_sz = f.metadata()?.len();
         let mut reader = BufReader::new(f);
-        // Give a reasonable capacity to the vector to avoid too many reallocations. The size of the file
-        // is the size of the compressed state dump, so we will still reallocate.
+        // Give a reasonable capacity to the vector to avoid too many reallocations. The size of the
+        // file is the size of the compressed state dump, so we will still reallocate.
         let mut raw_state = Vec::with_capacity(f_sz as usize);
         reader.read_to_end(&mut raw_state)?;
         let raw_state = fs::read(&self.input)?;
@@ -52,16 +52,9 @@ impl KernelBuilder {
         let (preimage_pipe, hint_pipe, pipe_fds) = crate::utils::create_native_pipes()?;
 
         // TODO(clabby): Allow for the preimage server to be configurable.
-        let cmd = self
-            .preimage_server
-            .split(' ')
-            .map(String::from)
-            .collect::<Vec<_>>();
+        let cmd = self.preimage_server.split(' ').map(String::from).collect::<Vec<_>>();
         let (oracle, server_proc) = ProcessPreimageOracle::start(
-            PathBuf::from(
-                cmd.first()
-                    .ok_or(anyhow!("Missing preimage server binary path"))?,
-            ),
+            PathBuf::from(cmd.first().ok_or(anyhow!("Missing preimage server binary path"))?),
             &cmd[1..],
             preimage_pipe,
             hint_pipe,

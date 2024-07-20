@@ -1,6 +1,6 @@
 //! This module contains the [InstrumentedState] definition.
 
-use crate::{Address, State, StepWitness};
+use crate::types::{Address, State, StepWitness};
 use anyhow::Result;
 use kona_preimage::{HintRouter, PreimageFetcher};
 use std::io::{BufWriter, Write};
@@ -120,14 +120,15 @@ where
 mod test {
     use alloy_primitives::keccak256;
 
-    use crate::test_utils::{ClaimTestOracle, BASE_ADDR_END, END_ADDR};
-    use crate::STATE_WITNESS_SIZE;
-    use crate::{load_elf, patch_go, patch_stack, state_hash};
-    use crate::{test_utils::StaticOracle, Address, InstrumentedState, Memory, State};
-    use std::io::BufWriter;
+    use crate::{
+        test_utils::{ClaimTestOracle, StaticOracle, BASE_ADDR_END, END_ADDR},
+        types::{state_hash, Address, State, STATE_WITNESS_SIZE},
+        utils::patch::{load_elf, patch_go, patch_stack},
+        InstrumentedState, Memory,
+    };
     use std::{
         fs,
-        io::{self, BufReader},
+        io::{self, BufReader, BufWriter},
         path::PathBuf,
     };
 
@@ -216,11 +217,7 @@ mod test {
         ];
 
         for (exited, exit_code) in cases.into_iter() {
-            let mut state = State {
-                exited,
-                exit_code,
-                ..Default::default()
-            };
+            let mut state = State { exited, exit_code, ..Default::default() };
 
             let actual_witness = state.encode_witness().unwrap();
             let actual_state_hash = state_hash(actual_witness);
@@ -236,10 +233,7 @@ mod test {
 
             let mut expected_state_hash = keccak256(&expected_witness);
             expected_state_hash[0] = State::vm_status(exited, exit_code) as u8;
-            assert_eq!(
-                actual_state_hash, expected_state_hash,
-                "Incorrect state hash"
-            );
+            assert_eq!(actual_state_hash, expected_state_hash, "Incorrect state hash");
         }
     }
 
@@ -265,14 +259,8 @@ mod test {
         assert!(ins.state.exited, "must exit");
         assert_eq!(ins.state.exit_code, 0, "must exit with 0");
 
-        assert_eq!(
-            String::from_utf8(ins.std_out.buffer().to_vec()).unwrap(),
-            "hello world!\n"
-        );
-        assert_eq!(
-            String::from_utf8(ins.std_err.buffer().to_vec()).unwrap(),
-            ""
-        );
+        assert_eq!(String::from_utf8(ins.std_out.buffer().to_vec()).unwrap(), "hello world!\n");
+        assert_eq!(String::from_utf8(ins.std_err.buffer().to_vec()).unwrap(), "");
     }
 
     #[tokio::test]
@@ -306,9 +294,6 @@ mod test {
                 ClaimTestOracle::S * ClaimTestOracle::A + ClaimTestOracle::B
             )
         );
-        assert_eq!(
-            String::from_utf8(ins.std_err.buffer().to_vec()).unwrap(),
-            "started!"
-        );
+        assert_eq!(String::from_utf8(ins.std_err.buffer().to_vec()).unwrap(), "started!");
     }
 }

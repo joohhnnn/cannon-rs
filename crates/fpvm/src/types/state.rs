@@ -1,6 +1,9 @@
 //! This module contains the data structure for the state of the MIPS emulator.
 
-use crate::{Memory, StateWitness, VMStatus, STATE_WITNESS_SIZE};
+use crate::{
+    types::{StateWitness, VMStatus, STATE_WITNESS_SIZE},
+    Memory,
+};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +17,7 @@ pub struct State {
     /// The [Memory] of the emulated MIPS thread context.
     pub memory: Memory,
     /// The preimage key for the given state.
-    #[serde(with = "crate::ser::fixed_32_hex")]
+    #[serde(with = "crate::utils::ser::fixed_32_hex")]
     pub preimage_key: [u8; 32],
     /// The preimage offset.
     pub preimage_offset: u32,
@@ -37,7 +40,7 @@ pub struct State {
     /// The MIPS emulator's registers.
     pub registers: [u32; 32],
     /// The last hint sent to the host.
-    #[serde(with = "crate::ser::vec_u8_hex")]
+    #[serde(with = "crate::utils::ser::vec_u8_hex")]
     pub last_hint: Vec<u8>,
 }
 

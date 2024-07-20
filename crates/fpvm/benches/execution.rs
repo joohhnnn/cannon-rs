@@ -1,6 +1,6 @@
 use cannon_fpvm::{
-    load_elf, patch_go, patch_stack,
     test_utils::{ClaimTestOracle, StaticOracle},
+    utils::patch::{load_elf, patch_go, patch_stack},
     InstrumentedState,
 };
 use criterion::{criterion_group, criterion_main, Bencher, Criterion};

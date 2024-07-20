@@ -1,6 +1,9 @@
 //! This module contains the various witness types.
 
-use crate::{utils::keccak256, State, StateWitness};
+use crate::{
+    types::{State, StateWitness},
+    utils::keccak256,
+};
 use alloy_primitives::{Bytes, B256, U256};
 use alloy_sol_types::{sol, SolCall};
 use kona_preimage::PreimageKeyType;

@@ -3,8 +3,8 @@
 use crate::{
     memory::{page, MemoryReader},
     mips::instrumented::{MIPS_EBADF, MIPS_EINVAL},
-    types::Syscall,
-    Address, Fd, InstrumentedState,
+    types::{Address, Fd, Syscall},
+    InstrumentedState,
 };
 use anyhow::Result;
 use kona_preimage::{HintRouter, PreimageFetcher};
@@ -185,9 +185,7 @@ where
         // Write memory
         if store_address != 0xFFFFFFFF {
             self.track_mem_access(store_address as Address)?;
-            self.state
-                .memory
-                .set_memory(store_address as Address, val)?;
+            self.state.memory.set_memory(store_address as Address, val)?;
         }
 
         // Write back the value to the destination register
@@ -203,11 +201,8 @@ where
         let mut v0 = 0;
         let mut v1 = 0;
 
-        let (a0, a1, mut a2) = (
-            self.state.registers[4],
-            self.state.registers[5],
-            self.state.registers[6],
-        );
+        let (a0, a1, mut a2) =
+            (self.state.registers[4], self.state.registers[5], self.state.registers[6]);
 
         if let Ok(syscall) = Syscall::try_from(self.state.registers[2]) {
             match syscall {
@@ -337,10 +332,7 @@ where
                         }
 
                         let key_copy = key;
-                        io::copy(
-                            &mut key_copy[a2 as usize..].as_ref(),
-                            &mut key.as_mut_slice(),
-                        )?;
+                        io::copy(&mut key_copy[a2 as usize..].as_ref(), &mut key.as_mut_slice())?;
 
                         let _ = memory.to_be_bytes()[alignment as usize..]
                             .as_ref()

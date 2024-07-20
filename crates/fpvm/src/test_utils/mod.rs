@@ -1,6 +1,6 @@
 //! Testing utilities.
 
-use crate::{utils::concat_fixed, utils::keccak256};
+use crate::utils::{concat_fixed, keccak256};
 use alloy_primitives::hex;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -79,9 +79,7 @@ impl Default for ClaimTestOracle {
             (Self::S * Self::A + Self::B).to_be_bytes().to_vec(),
         );
 
-        Self {
-            images: Arc::new(Mutex::new(images)),
-        }
+        Self { images: Arc::new(Mutex::new(images)) }
     }
 }
 
@@ -98,11 +96,7 @@ impl HintRouter for ClaimTestOracle {
 
         match parts[0] {
             "fetch-state" => {
-                assert_eq!(
-                    hash,
-                    Self::pre_hash(),
-                    "Expecting request for pre-state preimage"
-                );
+                assert_eq!(hash, Self::pre_hash(), "Expecting request for pre-state preimage");
 
                 self.images.lock().await.insert(
                     PreimageKey::new(Self::pre_hash(), PreimageKeyType::Keccak256),
@@ -110,11 +104,7 @@ impl HintRouter for ClaimTestOracle {
                 );
             }
             "fetch-diff" => {
-                assert_eq!(
-                    hash,
-                    Self::diff_hash(),
-                    "Expecting request for diff preimage"
-                );
+                assert_eq!(hash, Self::diff_hash(), "Expecting request for diff preimage");
 
                 let mut images_lock = self.images.lock().await;
                 images_lock.insert(
@@ -122,17 +112,11 @@ impl HintRouter for ClaimTestOracle {
                     Self::diff().to_vec(),
                 );
                 images_lock.insert(
-                    PreimageKey::new(
-                        *keccak256(Self::A.to_be_bytes()),
-                        PreimageKeyType::Keccak256,
-                    ),
+                    PreimageKey::new(*keccak256(Self::A.to_be_bytes()), PreimageKeyType::Keccak256),
                     Self::A.to_be_bytes().to_vec(),
                 );
                 images_lock.insert(
-                    PreimageKey::new(
-                        *keccak256(Self::B.to_be_bytes()),
-                        PreimageKeyType::Keccak256,
-                    ),
+                    PreimageKey::new(*keccak256(Self::B.to_be_bytes()), PreimageKeyType::Keccak256),
                     Self::B.to_be_bytes().to_vec(),
                 );
             }
@@ -146,12 +130,6 @@ impl HintRouter for ClaimTestOracle {
 #[async_trait]
 impl PreimageFetcher for ClaimTestOracle {
     async fn get_preimage(&self, key: PreimageKey) -> Result<Vec<u8>> {
-        Ok(self
-            .images
-            .lock()
-            .await
-            .get(&key)
-            .ok_or(anyhow::anyhow!("No image for key"))?
-            .to_vec())
+        Ok(self.images.lock().await.get(&key).ok_or(anyhow::anyhow!("No image for key"))?.to_vec())
     }
 }

@@ -1,8 +1,9 @@
 //! The memory module contains the [Memory] data structure and its functionality for the emulator.
 
 use crate::{
-    memory::page, types::SharedCachedPage, utils::keccak_concat_hashes, Address, Gindex, Page,
-    PageIndex,
+    memory::page,
+    types::{Address, Gindex, Page, PageIndex, SharedCachedPage},
+    utils::keccak_concat_hashes,
 };
 use anyhow::Result;
 use rustc_hash::FxHashMap;
@@ -218,7 +219,8 @@ impl Memory {
     }
 
     /// Set a 32 bit value in the [Memory] at a given address.
-    /// This will invalidate the page at the given address, or allocate a new page if it does not exist.
+    /// This will invalidate the page at the given address, or allocate a new page if it does not
+    /// exist.
     ///
     /// ### Takes
     /// - `address`: The address to set the value at.
@@ -339,8 +341,8 @@ impl Memory {
     /// Returns a human-readable string describing the size of the [Memory].
     ///
     /// ### Returns
-    /// - A human-readable string describing the size of the [Memory] in B, KiB,
-    ///   MiB, GiB, TiB, PiB, or EiB.
+    /// - A human-readable string describing the size of the [Memory] in B, KiB, MiB, GiB, TiB, PiB,
+    ///   or EiB.
     pub fn usage(&self) -> String {
         let total = (self.pages.len() * page::PAGE_SIZE) as u64;
         const UNIT: u64 = 1024;
@@ -355,27 +357,20 @@ impl Memory {
             exp += 1;
             n /= UNIT;
         }
-        format!(
-            "{:.1} {}iB",
-            (total as f64) / (div as f64),
-            ['K', 'M', 'G', 'T', 'P', 'E'][exp]
-        )
+        format!("{:.1} {}iB", (total as f64) / (div as f64), ['K', 'M', 'G', 'T', 'P', 'E'][exp])
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct PageEntry {
     index: PageIndex,
-    #[serde(with = "crate::ser::page_hex")]
+    #[serde(with = "crate::utils::ser::page_hex")]
     data: Page,
 }
 
 impl Default for PageEntry {
     fn default() -> Self {
-        Self {
-            index: Default::default(),
-            data: [0u8; page::PAGE_SIZE],
-        }
+        Self { index: Default::default(), data: [0u8; page::PAGE_SIZE] }
     }
 }
 
@@ -387,10 +382,7 @@ impl Serialize for Memory {
         let mut page_entries: Vec<PageEntry> = self
             .pages
             .iter()
-            .map(|(&k, p)| PageEntry {
-                index: k,
-                data: p.borrow().data,
-            })
+            .map(|(&k, p)| PageEntry { index: k, data: p.borrow().data })
             .collect();
 
         page_entries.sort_by(|a, b| a.index.cmp(&b.index));
@@ -434,11 +426,7 @@ pub struct MemoryReader<'a> {
 
 impl<'a> MemoryReader<'a> {
     pub fn new(memory: &'a mut Memory, address: Address, count: u32) -> Self {
-        Self {
-            memory,
-            address,
-            count,
-        }
+        Self { memory, address, count }
     }
 }
 
@@ -559,34 +547,18 @@ mod test {
             memory.set_memory(0xF000, 0).unwrap();
             memory.set_memory(0xF004, 0).unwrap();
             let root = memory.merkle_root().unwrap();
-            assert_eq!(
-                page::ZERO_HASHES[32 - 5],
-                root,
-                "Still should have expected zero hash"
-            );
+            assert_eq!(page::ZERO_HASHES[32 - 5], root, "Still should have expected zero hash");
         }
 
         #[test]
         fn random_few_pages() {
             let mut memory = Memory::default();
-            memory
-                .set_memory(page::PAGE_SIZE as Address * 3, 1)
-                .unwrap();
-            memory
-                .set_memory(page::PAGE_SIZE as Address * 5, 42)
-                .unwrap();
-            memory
-                .set_memory(page::PAGE_SIZE as Address * 6, 123)
-                .unwrap();
-            let p3 = memory
-                .merkleize_subtree((1 << page::PAGE_KEY_SIZE) | 3)
-                .unwrap();
-            let p5 = memory
-                .merkleize_subtree((1 << page::PAGE_KEY_SIZE) | 5)
-                .unwrap();
-            let p6 = memory
-                .merkleize_subtree((1 << page::PAGE_KEY_SIZE) | 6)
-                .unwrap();
+            memory.set_memory(page::PAGE_SIZE as Address * 3, 1).unwrap();
+            memory.set_memory(page::PAGE_SIZE as Address * 5, 42).unwrap();
+            memory.set_memory(page::PAGE_SIZE as Address * 6, 123).unwrap();
+            let p3 = memory.merkleize_subtree((1 << page::PAGE_KEY_SIZE) | 3).unwrap();
+            let p5 = memory.merkleize_subtree((1 << page::PAGE_KEY_SIZE) | 5).unwrap();
+            let p6 = memory.merkleize_subtree((1 << page::PAGE_KEY_SIZE) | 6).unwrap();
             let z = page::ZERO_HASHES[page::PAGE_ADDRESS_SIZE - 5];
             let r1 = keccak_concat_hashes(
                 keccak_concat_hashes(
@@ -600,36 +572,19 @@ mod test {
                 )
                 .into(),
             );
-            let r2 = memory
-                .merkleize_subtree(1 << (page::PAGE_KEY_SIZE - 3))
-                .unwrap();
-            assert_eq!(
-                r1, r2,
-                "Expecting manual page combination to match subtree merkle func"
-            );
+            let r2 = memory.merkleize_subtree(1 << (page::PAGE_KEY_SIZE - 3)).unwrap();
+            assert_eq!(r1, r2, "Expecting manual page combination to match subtree merkle func");
         }
 
         #[test]
         fn invalidate_page() {
             let mut memory = Memory::default();
             memory.set_memory(0xF000, 0).unwrap();
-            assert_eq!(
-                page::ZERO_HASHES[32 - 5],
-                memory.merkle_root().unwrap(),
-                "Zero at first"
-            );
+            assert_eq!(page::ZERO_HASHES[32 - 5], memory.merkle_root().unwrap(), "Zero at first");
             memory.set_memory(0xF004, 1).unwrap();
-            assert_ne!(
-                page::ZERO_HASHES[32 - 5],
-                memory.merkle_root().unwrap(),
-                "Non-zero"
-            );
+            assert_ne!(page::ZERO_HASHES[32 - 5], memory.merkle_root().unwrap(), "Non-zero");
             memory.set_memory(0xF004, 0).unwrap();
-            assert_eq!(
-                page::ZERO_HASHES[32 - 5],
-                memory.merkle_root().unwrap(),
-                "Zero again"
-            );
+            assert_eq!(page::ZERO_HASHES[32 - 5], memory.merkle_root().unwrap(), "Zero again");
         }
     }
 
@@ -644,9 +599,7 @@ mod test {
             let mut memory = Memory::default();
             let mut data = [0u8; 20_000];
             rand::thread_rng().fill_bytes(&mut data[..]);
-            memory
-                .set_memory_range(0, &data[..])
-                .expect("Should not error");
+            memory.set_memory_range(0, &data[..]).expect("Should not error");
             for i in [0, 4, 1000, 20_000 - 4] {
                 let value = memory.get_memory(i).expect("Should not error");
                 let expected =
@@ -659,9 +612,7 @@ mod test {
         fn repeat_range() {
             let mut memory = Memory::default();
             let data = b"under the big bright yellow sun".repeat(40);
-            memory
-                .set_memory_range(0x1337, &data[..])
-                .expect("Should not error");
+            memory.set_memory_range(0x1337, &data[..]).expect("Should not error");
 
             let mut reader = MemoryReader::new(&mut memory, 0x1337 - 10, data.len() as u32 + 20);
             let mut buf = Vec::with_capacity(1260);
@@ -707,7 +658,7 @@ mod test {
 
     mod serialize {
         use super::*;
-        use crate::{types::SharedCachedPage, Gindex, PageIndex};
+        use crate::types::{Gindex, PageIndex, SharedCachedPage};
         use proptest::{
             prelude::{any, Arbitrary},
             proptest,

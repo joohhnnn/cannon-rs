@@ -19,13 +19,11 @@ macro_rules! fixed_hex_ser {
                 D: Deserializer<'de>,
             {
                 let s = String::deserialize(deserializer)?;
-                hex::decode(s)
-                    .map_err(serde::de::Error::custom)
-                    .map(|bytes| {
-                        let mut array = [0u8; $size];
-                        array.copy_from_slice(&bytes);
-                        array
-                    })
+                hex::decode(s).map_err(serde::de::Error::custom).map(|bytes| {
+                    let mut array = [0u8; $size];
+                    array.copy_from_slice(&bytes);
+                    array
+                })
             }
         }
     };
@@ -33,7 +31,7 @@ macro_rules! fixed_hex_ser {
 
 fixed_hex_ser!(fixed_32_hex, 32);
 fixed_hex_ser!(page_hex, crate::memory::page::PAGE_SIZE);
-fixed_hex_ser!(state_witness_hex, crate::STATE_WITNESS_SIZE);
+fixed_hex_ser!(state_witness_hex, crate::types::STATE_WITNESS_SIZE);
 
 pub mod vec_u8_hex {
     use alloy_primitives::hex;
