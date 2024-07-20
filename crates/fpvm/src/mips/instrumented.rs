@@ -1,7 +1,8 @@
 //! This module contains the [InstrumentedState] definition.
 
-use crate::{traits::PreimageOracle, Address, State, StepWitness};
+use crate::{Address, State, StepWitness};
 use anyhow::Result;
+use kona_preimage::{HintRouter, PreimageFetcher};
 use std::io::{BufWriter, Write};
 
 pub(crate) const MIPS_EBADF: u32 = 0x9;
@@ -11,7 +12,12 @@ pub(crate) const MIPS_EINVAL: u32 = 0x16;
 /// the input and output buffers, and an implementation of the MIPS VM.
 ///
 /// To perform an instruction step on the MIPS emulator, use the [InstrumentedState::step] method.
-pub struct InstrumentedState<O: Write, E: Write, P: PreimageOracle> {
+pub struct InstrumentedState<O, E, P>
+where
+    O: Write,
+    E: Write,
+    P: HintRouter + PreimageFetcher,
+{
     /// The inner [State] of the MIPS thread context.
     pub state: State,
     /// The MIPS thread context's stdout buffer.
@@ -41,7 +47,7 @@ impl<O, E, P> InstrumentedState<O, E, P>
 where
     O: Write,
     E: Write,
-    P: PreimageOracle,
+    P: HintRouter + PreimageFetcher,
 {
     pub fn new(state: State, oracle: P, std_out: O, std_err: E) -> Self {
         Self {
@@ -64,7 +70,7 @@ where
     /// - Ok(Some(witness)): The [StepWitness] for the current
     /// - Err(_): An error occurred while processing the instruction step in the MIPS emulator.
     #[inline(always)]
-    pub fn step(&mut self, proof: bool) -> Result<Option<StepWitness>> {
+    pub async fn step(&mut self, proof: bool) -> Result<Option<StepWitness>> {
         self.mem_proof_enabled = proof;
         self.last_mem_access = !0u32 as Address;
         self.last_preimage_offset = !0u32;
@@ -82,7 +88,7 @@ where
             })
         }
 
-        self.inner_step()?;
+        self.inner_step().await?;
 
         if proof {
             witness = witness.map(|mut wit| {
@@ -128,8 +134,8 @@ mod test {
     mod open_mips {
         use super::*;
 
-        #[test]
-        fn open_mips_tests() {
+        #[tokio::test]
+        async fn open_mips_tests() {
             let tests_path = PathBuf::from(std::env::current_dir().unwrap())
                 .join("open_mips_tests")
                 .join("test")
@@ -174,7 +180,7 @@ mod test {
                         if exit_group && ins.state.exited {
                             break;
                         }
-                        ins.step(false).unwrap();
+                        ins.step(false).await.unwrap();
                     }
 
                     if exit_group {
@@ -237,8 +243,8 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_hello() {
+    #[tokio::test]
+    async fn test_hello() {
         let elf_bytes = include_bytes!("../../../../example/bin/hello.elf");
         let mut state = load_elf(elf_bytes).unwrap();
         patch_go(elf_bytes, &mut state).unwrap();
@@ -253,7 +259,7 @@ mod test {
             if ins.state.exited {
                 break;
             }
-            ins.step(false).unwrap();
+            ins.step(false).await.unwrap();
         }
 
         assert!(ins.state.exited, "must exit");
@@ -269,8 +275,8 @@ mod test {
         );
     }
 
-    #[test]
-    fn test_claim() {
+    #[tokio::test]
+    async fn test_claim() {
         let elf_bytes = include_bytes!("../../../../example/bin/claim.elf");
         let mut state = load_elf(elf_bytes).unwrap();
         patch_go(elf_bytes, &mut state).unwrap();
@@ -284,7 +290,7 @@ mod test {
             if ins.state.exited {
                 break;
             }
-            ins.step(false).unwrap();
+            ins.step(false).await.unwrap();
         }
 
         assert!(ins.state.exited, "must exit");

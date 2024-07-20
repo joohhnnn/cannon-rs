@@ -1,10 +1,14 @@
 //! Testing utilities.
 
-use crate::{utils::concat_fixed, utils::keccak256, PreimageOracle};
+use std::sync::Arc;
+
+use crate::{utils::concat_fixed, utils::keccak256};
 use alloy_primitives::hex;
 use anyhow::Result;
-use preimage_oracle::{Hint, Keccak256Key, Key, LocalIndexKey};
+use async_trait::async_trait;
+use kona_preimage::{HintRouter, PreimageFetcher, PreimageKey, PreimageKeyType};
 use rustc_hash::FxHashMap;
+use tokio::sync::Mutex;
 
 /// Used in tests to write the results to
 pub const BASE_ADDR_END: u32 = 0xBF_FF_FF_F0;
@@ -23,22 +27,23 @@ impl StaticOracle {
     }
 }
 
-impl PreimageOracle for StaticOracle {
-    fn hint(&mut self, _value: impl Hint) -> Result<()> {
-        // noop
+#[async_trait]
+impl HintRouter for StaticOracle {
+    async fn route_hint(&self, _: String) -> Result<()> {
+        // no-op
         Ok(())
     }
+}
 
-    fn get(&mut self, key: [u8; 32]) -> anyhow::Result<Vec<u8>> {
-        if key != (key as Keccak256Key).preimage_key() {
-            anyhow::bail!("Invalid preimage ")
-        }
+#[async_trait]
+impl PreimageFetcher for StaticOracle {
+    async fn get_preimage(&self, _: PreimageKey) -> Result<Vec<u8>> {
         Ok(self.preimage_data.clone())
     }
 }
 
 pub struct ClaimTestOracle {
-    images: FxHashMap<[u8; 32], Vec<u8>>,
+    images: Arc<Mutex<FxHashMap<PreimageKey, Vec<u8>>>>,
 }
 
 impl ClaimTestOracle {
@@ -67,30 +72,23 @@ impl ClaimTestOracle {
 
 impl Default for ClaimTestOracle {
     fn default() -> Self {
-        let mut s = Self {
-            images: Default::default(),
-        };
-
-        s.images.insert(
-            (0 as LocalIndexKey).preimage_key(),
-            Self::pre_hash().to_vec(),
-        );
-        s.images.insert(
-            (1 as LocalIndexKey).preimage_key(),
-            Self::diff_hash().to_vec(),
-        );
-        s.images.insert(
-            (2 as LocalIndexKey).preimage_key(),
+        let mut images = FxHashMap::default();
+        images.insert(PreimageKey::new_local(0), Self::pre_hash().to_vec());
+        images.insert(PreimageKey::new_local(1), Self::diff_hash().to_vec());
+        images.insert(
+            PreimageKey::new_local(2),
             (Self::S * Self::A + Self::B).to_be_bytes().to_vec(),
         );
 
-        s
+        Self {
+            images: Arc::new(Mutex::new(images)),
+        }
     }
 }
 
-impl PreimageOracle for ClaimTestOracle {
-    fn hint(&mut self, value: impl Hint) -> Result<()> {
-        let s = String::from_utf8(value.hint().to_vec()).unwrap();
+#[async_trait]
+impl HintRouter for ClaimTestOracle {
+    async fn route_hint(&self, s: String) -> Result<()> {
         let parts: Vec<&str> = s.split(' ').collect();
 
         assert_eq!(parts.len(), 2);
@@ -107,8 +105,8 @@ impl PreimageOracle for ClaimTestOracle {
                     "Expecting request for pre-state preimage"
                 );
 
-                self.images.insert(
-                    (Self::pre_hash() as Keccak256Key).preimage_key(),
+                self.images.lock().await.insert(
+                    PreimageKey::new(Self::pre_hash(), PreimageKeyType::Keccak256),
                     Self::S.to_be_bytes().to_vec(),
                 );
             }
@@ -118,16 +116,24 @@ impl PreimageOracle for ClaimTestOracle {
                     Self::diff_hash(),
                     "Expecting request for diff preimage"
                 );
-                self.images.insert(
-                    (Self::diff_hash() as Keccak256Key).preimage_key(),
+
+                let mut images_lock = self.images.lock().await;
+                images_lock.insert(
+                    PreimageKey::new(Self::diff_hash(), PreimageKeyType::Keccak256),
                     Self::diff().to_vec(),
                 );
-                self.images.insert(
-                    (*keccak256(Self::A.to_be_bytes()) as Keccak256Key).preimage_key(),
+                images_lock.insert(
+                    PreimageKey::new(
+                        *keccak256(Self::A.to_be_bytes()),
+                        PreimageKeyType::Keccak256,
+                    ),
                     Self::A.to_be_bytes().to_vec(),
                 );
-                self.images.insert(
-                    (*keccak256(Self::B.to_be_bytes()) as Keccak256Key).preimage_key(),
+                images_lock.insert(
+                    PreimageKey::new(
+                        *keccak256(Self::B.to_be_bytes()),
+                        PreimageKeyType::Keccak256,
+                    ),
                     Self::B.to_be_bytes().to_vec(),
                 );
             }
@@ -136,10 +142,15 @@ impl PreimageOracle for ClaimTestOracle {
 
         Ok(())
     }
+}
 
-    fn get(&mut self, key: [u8; 32]) -> anyhow::Result<Vec<u8>> {
+#[async_trait]
+impl PreimageFetcher for ClaimTestOracle {
+    async fn get_preimage(&self, key: PreimageKey) -> Result<Vec<u8>> {
         Ok(self
             .images
+            .lock()
+            .await
             .get(&key)
             .ok_or(anyhow::anyhow!("No image for key"))?
             .to_vec())

@@ -16,9 +16,13 @@ tokio.workspace = true
 
 # local
 cannon-fpvm = { path = "../fpvm" }
-preimage-oracle = { path = "../preimage" }
 
 # misc
+kona-preimage = { git = "https://github.com/ethereum-optimism/kona" }
+kona-common = { git = "https://github.com/ethereum-optimism/kona" }
+
+tempfile = "3.10"
+async-trait = "0.1.81"
 flate2 = "1.0.28"
 command-fds = "0.2.3"
 tracing = { version = "0.1.40", optional = true }

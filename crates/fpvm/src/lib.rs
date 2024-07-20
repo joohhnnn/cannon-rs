@@ -5,9 +5,6 @@
 mod memory;
 pub use memory::{CachedPage, Memory, MemoryReader};
 
-mod traits;
-pub use self::traits::PreimageOracle;
-
 mod utils;
 pub use utils::{
     patch::{load_elf, patch_go, patch_stack, MultiReader},

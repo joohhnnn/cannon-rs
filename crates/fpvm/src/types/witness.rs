@@ -3,7 +3,7 @@
 use crate::{utils::keccak256, State, StateWitness};
 use alloy_primitives::{Bytes, B256, U256};
 use alloy_sol_types::{sol, SolCall};
-use preimage_oracle::KeyType;
+use kona_preimage::PreimageKeyType;
 
 /// The size of an encoded [StateWitness] in bytes.
 pub const STATE_WITNESS_SIZE: usize = 226;
@@ -71,12 +71,8 @@ impl StepWitness {
     pub fn encode_preimage_oracle_input(&self) -> Option<Bytes> {
         let preimage_key = self.preimage_key?;
 
-        match KeyType::from(preimage_key[0]) {
-            KeyType::_Illegal => {
-                crate::error!(target: "fpvm::step_witness", "Illegal key type");
-                None
-            }
-            KeyType::Local => {
+        match PreimageKeyType::try_from(preimage_key[0]).ok()? {
+            PreimageKeyType::Local => {
                 let preimage_value = &self.preimage_value.clone()?;
 
                 if preimage_value.len() > 32 + 8 {
@@ -98,7 +94,7 @@ impl StepWitness {
 
                 Some(call.abi_encode().into())
             }
-            KeyType::GlobalKeccak => {
+            PreimageKeyType::Keccak256 => {
                 let call = loadKeccak256PreimagePartCall {
                     _0: U256::from(self.preimage_offset?),
                     _1: self.preimage_value.clone()?[8..].to_vec().into(),
@@ -106,6 +102,7 @@ impl StepWitness {
 
                 Some(call.abi_encode().into())
             }
+            _ => todo!(),
         }
     }
 

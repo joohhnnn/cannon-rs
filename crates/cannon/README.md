@@ -29,4 +29,4 @@ is working, the emulator is blocked on waiting for the preimage oracle server to
 ```
 
 [fpvm]: ../fpvm
-[preimage-oracle]: ../preimage-oracle
+[preimage-oracle]: https://github.com/ethereum-optimism/kona

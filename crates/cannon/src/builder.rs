@@ -1,6 +1,6 @@
 //! The [KernelBuilder] struct is a helper for building a [Kernel] struct.
 
-use crate::{gz, ChildWithFds, Kernel, ProcessPreimageOracle};
+use crate::{gz, Kernel, ProcessPreimageOracle};
 use anyhow::{anyhow, Result};
 use cannon_fpvm::{InstrumentedState, State};
 use std::{
@@ -49,10 +49,7 @@ impl KernelBuilder {
         let raw_state = fs::read(&self.input)?;
         let state: State = serde_json::from_slice(&gz::decompress_bytes(&raw_state)?)?;
 
-        let (hint_cl_rw, hint_oracle_rw) = preimage_oracle::create_bidirectional_channel()?;
-        let (pre_cl_rw, pre_oracle_rw) = preimage_oracle::create_bidirectional_channel()?;
-
-        let server_io = [hint_oracle_rw, pre_oracle_rw];
+        let (preimage_pipe, hint_pipe, pipe_fds) = crate::utils::create_native_pipes()?;
 
         // TODO(clabby): Allow for the preimage server to be configurable.
         let cmd = self
@@ -66,14 +63,10 @@ impl KernelBuilder {
                     .ok_or(anyhow!("Missing preimage server binary path"))?,
             ),
             &cmd[1..],
-            (hint_cl_rw, pre_cl_rw),
-            &server_io,
+            preimage_pipe,
+            hint_pipe,
+            pipe_fds,
         )?;
-
-        let server_proc = server_proc.map(|p| ChildWithFds {
-            inner: p,
-            fds: server_io,
-        });
 
         // TODO(clabby): Allow for the stdout / stderr to be configurable.
         let instrumented = InstrumentedState::new(state, oracle, io::stdout(), io::stderr());

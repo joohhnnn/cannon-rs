@@ -1,9 +1,13 @@
 //! This module contains the [PreimageServer] struct and its associated methods.
 
+use crate::utils::NativePipeFiles;
 use anyhow::Result;
-use cannon_fpvm::PreimageOracle;
+use async_trait::async_trait;
 use command_fds::{CommandFdExt, FdMapping};
-use preimage_oracle::{Hint, HintWriter, Hinter, Oracle, OracleClient, RawKey, ReadWritePair};
+use kona_preimage::{
+    HintRouter, HintWriter, HintWriterClient, OracleReader, PipeHandle, PreimageFetcher,
+    PreimageKey, PreimageOracleClient,
+};
 use std::{
     io,
     os::fd::AsRawFd,
@@ -16,7 +20,7 @@ use std::{
 /// and sending the results of preimage requests to the FPVM process.
 pub struct ProcessPreimageOracle {
     /// The preimage oracle client
-    pub preimage_client: OracleClient,
+    pub preimage_client: OracleReader,
     /// The hint writer client
     pub hint_writer_client: HintWriter,
 }
@@ -27,8 +31,9 @@ impl ProcessPreimageOracle {
     pub fn start(
         cmd: PathBuf,
         args: &[String],
-        client_io: (ReadWritePair, ReadWritePair),
-        server_io: &[ReadWritePair; 2],
+        preimage_pipe: PipeHandle,
+        hint_pipe: PipeHandle,
+        pipe_files: NativePipeFiles,
     ) -> Result<(Self, Option<Child>)> {
         let cmd_str = cmd.display().to_string();
         let child = (!cmd_str.is_empty()).then(|| {
@@ -43,10 +48,10 @@ impl ProcessPreimageOracle {
                 // Grab the file descriptors for the hint and preimage channels
                 // that the server will use to communicate with the FPVM
                 let fds = [
-                    server_io[0].reader().as_raw_fd(),
-                    server_io[0].writer().as_raw_fd(),
-                    server_io[1].reader().as_raw_fd(),
-                    server_io[1].writer().as_raw_fd(),
+                    pipe_files.preimage_read.as_raw_fd(),
+                    pipe_files.preimage_write.as_raw_fd(),
+                    pipe_files.hint_read.as_raw_fd(),
+                    pipe_files.hint_write.as_raw_fd()
                 ];
 
                 crate::traces::info!(target: "cannon::preimage::server", "Starting preimage server process: {:?} with fds {:?}", args, fds);
@@ -70,21 +75,24 @@ impl ProcessPreimageOracle {
 
         Ok((
             Self {
-                hint_writer_client: HintWriter::new(client_io.0),
-                preimage_client: OracleClient::new(client_io.1),
+                hint_writer_client: HintWriter::new(hint_pipe),
+                preimage_client: OracleReader::new(preimage_pipe),
             },
             child.transpose()?,
         ))
     }
 }
 
-impl PreimageOracle for ProcessPreimageOracle {
-    fn hint(&mut self, value: impl Hint) -> Result<()> {
-        self.hint_writer_client.hint(value)
+#[async_trait]
+impl HintRouter for ProcessPreimageOracle {
+    async fn route_hint(&self, hint: String) -> Result<()> {
+        self.hint_writer_client.write(&hint).await
     }
+}
 
-    fn get(&mut self, key: [u8; 32]) -> anyhow::Result<Vec<u8>> {
-        let key = RawKey(key);
-        self.preimage_client.get(key)
+#[async_trait]
+impl PreimageFetcher for ProcessPreimageOracle {
+    async fn get_preimage(&self, key: PreimageKey) -> Result<Vec<u8>> {
+        self.preimage_client.get(key).await
     }
 }

@@ -353,6 +353,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
+name = "async-trait"
+version = "0.1.81"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e0c28dcc82d7c8ead5cb13beb15405b57b8546e93215673ff8ca0349a028107"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
 name = "aurora-engine-modexp"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -539,13 +550,16 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "anyhow",
+ "async-trait",
  "cannon-fpvm",
  "command-fds",
  "flate2",
- "preimage-oracle",
+ "kona-common",
+ "kona-preimage",
  "proptest",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tracing",
 ]
@@ -557,18 +571,20 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "anyhow",
+ "async-trait",
  "criterion",
  "elf",
  "keccak256-aarch64-simd",
+ "kona-preimage",
  "once_cell",
  "pprof",
- "preimage-oracle",
  "proptest",
  "rand",
  "revm",
  "rustc-hash 2.0.0",
  "serde",
  "serde_json",
+ "tokio",
  "tracing",
  "xkcp-rs",
 ]
@@ -1290,12 +1306,36 @@ version = "0.0.1"
 source = "git+https://github.com/clabby/keccak256-aarch64?rev=5c4c8f8#5c4c8f864389aa17b97f21400fe9a908d9262147"
 
 [[package]]
+name = "kona-common"
+version = "0.0.2"
+source = "git+https://github.com/ethereum-optimism/kona#00e6bc8801182c4eb2485f8eee6a7706105f48b6"
+dependencies = [
+ "anyhow",
+ "cfg-if",
+ "linked_list_allocator",
+ "spin 0.9.8",
+]
+
+[[package]]
+name = "kona-preimage"
+version = "0.0.2"
+source = "git+https://github.com/ethereum-optimism/kona#00e6bc8801182c4eb2485f8eee6a7706105f48b6"
+dependencies = [
+ "alloy-primitives",
+ "anyhow",
+ "async-trait",
+ "cfg-if",
+ "kona-common",
+ "tracing",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 dependencies = [
- "spin",
+ "spin 0.5.2",
 ]
 
 [[package]]
@@ -1325,6 +1365,15 @@ name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
+
+[[package]]
+name = "linked_list_allocator"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9afa463f5405ee81cdb9cc2baf37e08ec7e4c8209442b5d72c04cfb2cd6e6286"
+dependencies = [
+ "spinning_top",
+]
 
 [[package]]
 name = "linux-raw-sys"
@@ -1548,16 +1597,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
-name = "os_pipe"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57119c3b893986491ec9aa85056780d3a0f3cf4da7cc09dd3650dbd6c6738fb9"
-dependencies = [
- "libc",
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1706,18 +1745,6 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
-
-[[package]]
-name = "preimage-oracle"
-version = "0.1.0"
-dependencies = [
- "alloy-primitives",
- "anyhow",
- "os_pipe",
- "rand",
- "tokio",
- "tracing",
-]
 
 [[package]]
 name = "prettyplease"
@@ -2317,6 +2344,24 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "spin"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+dependencies = [
+ "lock_api",
+]
+
+[[package]]
+name = "spinning_top"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b9eb1a2f4c41445a3a0ff9abc5221c5fcd28e1f13cd7c0397706f9ac938ddb0"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "spki"

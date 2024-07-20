@@ -46,7 +46,6 @@ _TL;DR:_
 ## Overview
 
 - [`cannon-fpvm`](./crates/fpvm) - Contains the native implementation of the MIPS thread context emulator.
-- [`preimage-oracle`](./crates/preimage) - Rust bindings for interacting as client or sever over the Pre-image Oracle ABI.
 - [`cannon-contracts`](https://github.com/ethereum-optimism/optimism/tree/develop/packages/contracts-bedrock/src/cannon) - [*in OP monorepo*] Contains the Solidity implementation of the MIPS thread context and the Preimage Oracle.
 
 ## Credits

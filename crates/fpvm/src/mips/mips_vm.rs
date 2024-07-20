@@ -4,16 +4,17 @@ use crate::{
     memory::{page, MemoryReader},
     mips::instrumented::{MIPS_EBADF, MIPS_EINVAL},
     types::Syscall,
-    Address, Fd, InstrumentedState, PreimageOracle,
+    Address, Fd, InstrumentedState,
 };
 use anyhow::Result;
+use kona_preimage::{HintRouter, PreimageFetcher};
 use std::io::{self, BufReader, Read, Write};
 
 impl<O, E, P> InstrumentedState<O, E, P>
 where
     O: Write,
     E: Write,
-    P: PreimageOracle,
+    P: HintRouter + PreimageFetcher,
 {
     /// Read the preimage for the given key and offset from the [PreimageOracle] server.
     ///
@@ -25,13 +26,13 @@ where
     /// - `Ok((data, data_len))`: The preimage data and length.
     /// - `Err(_)`: An error occurred while fetching the preimage.
     #[inline(always)]
-    pub(crate) fn read_preimage(
+    pub(crate) async fn read_preimage(
         &mut self,
         key: [u8; 32],
         offset: u32,
     ) -> Result<([u8; 32], usize)> {
         if key != self.last_preimage_key {
-            let data = self.preimage_oracle.get(key)?;
+            let data = self.preimage_oracle.get_preimage(key.try_into()?).await?;
             self.last_preimage_key = key;
 
             // Add the length prefix to the preimage
@@ -74,7 +75,7 @@ where
     /// ### Returns
     /// - A [Result] indicating if the step was successful.
     #[inline(always)]
-    pub(crate) fn inner_step(&mut self) -> Result<()> {
+    pub(crate) async fn inner_step(&mut self) -> Result<()> {
         if self.state.exited {
             return Ok(());
         }
@@ -166,7 +167,7 @@ where
                 }
                 0x0C => {
                     // syscall (can read and write)
-                    return self.handle_syscall();
+                    return self.handle_syscall().await;
                 }
                 (0x10..=0x1b) => {
                     // lo and hi registers
@@ -198,7 +199,7 @@ where
     /// ### Returns
     /// - A [Result] indicating if the syscall dispatch was successful.
     #[inline(always)]
-    pub(crate) fn handle_syscall(&mut self) -> Result<()> {
+    pub(crate) async fn handle_syscall(&mut self) -> Result<()> {
         let mut v0 = 0;
         let mut v1 = 0;
 
@@ -250,7 +251,8 @@ where
                         let memory = self.state.memory.get_memory(effective_address)?;
 
                         let (data, mut data_len) = self
-                            .read_preimage(self.state.preimage_key, self.state.preimage_offset)?;
+                            .read_preimage(self.state.preimage_key, self.state.preimage_offset)
+                            .await?;
 
                         let alignment = (a1 & 0x3) as usize;
                         let space = 4 - alignment;
@@ -307,7 +309,12 @@ where
                                 let hint = &self.state.last_hint[4..4 + hint_len as usize];
 
                                 // TODO(clabby): Ordering could be an issue here.
-                                self.preimage_oracle.hint(hint)?;
+                                self.preimage_oracle
+                                    .route_hint(
+                                        String::from_utf8(hint.to_vec())
+                                            .map_err(|e| anyhow::anyhow!(e))?,
+                                    )
+                                    .await?;
                                 self.state.last_hint =
                                     self.state.last_hint[4 + hint_len as usize..].into();
                             } else {

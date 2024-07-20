@@ -245,8 +245,8 @@ mod test {
         path::PathBuf,
     };
 
-    #[test]
-    fn evm() {
+    #[tokio::test]
+    async fn evm() {
         let mut mips_evm = MipsEVM::new();
         mips_evm.try_init().unwrap();
 
@@ -309,7 +309,7 @@ mod test {
                         )
                     );
 
-                    let step_witness = instrumented.step(true).unwrap().unwrap();
+                    let step_witness = instrumented.step(true).await.unwrap().unwrap();
 
                     // Verify that the post state matches
                     let evm_post = mips_evm.step(step_witness).unwrap();
@@ -336,8 +336,8 @@ mod test {
         }
     }
 
-    #[test]
-    fn evm_single_step() {
+    #[tokio::test]
+    async fn evm_single_step() {
         let mut mips_evm = MipsEVM::new();
         mips_evm.try_init().unwrap();
 
@@ -372,7 +372,7 @@ mod test {
                 io::stdout(),
                 io::stderr(),
             );
-            let step_witness = instrumented.step(true).unwrap().unwrap();
+            let step_witness = instrumented.step(true).await.unwrap().unwrap();
 
             let evm_post = mips_evm.step(step_witness).unwrap();
             let rust_post = instrumented.state.encode_witness().unwrap();
@@ -381,8 +381,8 @@ mod test {
         }
     }
 
-    #[test]
-    fn evm_fault() {
+    #[tokio::test]
+    async fn evm_fault() {
         let mut mips_evm = MipsEVM::new();
         mips_evm.try_init().unwrap();
 
@@ -410,7 +410,7 @@ mod test {
                 io::stdout(),
                 io::stderr(),
             );
-            assert!(instrumented.step(true).is_err());
+            assert!(instrumented.step(true).await.is_err());
 
             let mut initial_state = State {
                 next_pc: next_pc as Address,
@@ -429,8 +429,8 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_hello_evm() {
+    #[tokio::test]
+    async fn test_hello_evm() {
         let mut mips_evm = MipsEVM::new();
         mips_evm.try_init().unwrap();
 
@@ -459,7 +459,7 @@ mod test {
                 );
             }
 
-            let step_witness = instrumented.step(true).unwrap().unwrap();
+            let step_witness = instrumented.step(true).await.unwrap().unwrap();
 
             let evm_post = mips_evm.step(step_witness).unwrap();
             let rust_post = instrumented.state.encode_witness().unwrap();
@@ -470,8 +470,8 @@ mod test {
         assert_eq!(instrumented.state.exit_code, 0, "Must exit with 0");
     }
 
-    #[test]
-    fn test_claim_evm() {
+    #[tokio::test]
+    async fn test_claim_evm() {
         let mut mips_evm = MipsEVM::new();
         mips_evm.try_init().unwrap();
 
@@ -503,7 +503,7 @@ mod test {
                 );
             }
 
-            let step_witness = instrumented.step(true).unwrap().unwrap();
+            let step_witness = instrumented.step(true).await.unwrap().unwrap();
 
             let evm_post = mips_evm.step(step_witness).unwrap();
             let rust_post = instrumented.state.encode_witness().unwrap();

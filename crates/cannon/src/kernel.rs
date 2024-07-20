@@ -1,11 +1,13 @@
 //! This module contains the [Kernel] struct and its associated methods.
 
-use crate::{gz::compress_bytes, types::Proof, ChildWithFds};
+use crate::{gz::compress_bytes, types::Proof};
 use anyhow::{anyhow, Result};
-use cannon_fpvm::{state_hash, InstrumentedState, PreimageOracle};
+use cannon_fpvm::{state_hash, InstrumentedState};
+use kona_preimage::{HintRouter, PreimageFetcher};
 use std::{
     fs::File,
     io::{BufWriter, Write},
+    process::Child,
 };
 use tokio::{runtime::Runtime, task::JoinHandle};
 
@@ -15,14 +17,19 @@ use std::time::Instant;
 /// The [Kernel] struct contains the configuration for a Cannon kernel as well as
 /// the [PreimageOracle] and [InstrumentedState] instances that form it.
 #[allow(dead_code)]
-pub struct Kernel<O: Write, E: Write, P: PreimageOracle> {
+pub struct Kernel<O, E, P>
+where
+    O: Write,
+    E: Write,
+    P: HintRouter + PreimageFetcher,
+{
     /// The instrumented state that the kernel will run.
     ins_state: InstrumentedState<O, E, P>,
     /// The server's process coupled with the preimage server's IO. We hold on to these so that they
     /// are not dropped until the kernel is dropped, preventing a broken pipe before the kernel is
     /// dropped. The other side of the bidirectional channel is owned by the [InstrumentedState],
     /// which is also dropped when the kernel is dropped.
-    server_proc: Option<ChildWithFds>,
+    server_proc: Option<Child>,
     /// The path to the input JSON state.
     input: String,
     /// The path to the output JSON state.
@@ -46,12 +53,12 @@ impl<O, E, P> Kernel<O, E, P>
 where
     O: Write,
     E: Write,
-    P: PreimageOracle,
+    P: HintRouter + PreimageFetcher,
 {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         ins_state: InstrumentedState<O, E, P>,
-        server_proc: Option<ChildWithFds>,
+        server_proc: Option<Child>,
         input: String,
         output: Option<String>,
         proof_at: Option<String>,
@@ -140,7 +147,7 @@ where
                     let prestate_hash = state_hash(self.ins_state.state.encode_witness()?);
                     let step_witness = self
                         .ins_state
-                        .step(true)?
+                        .step(true).await?
                         .ok_or(anyhow!("No step witness"))?;
                     let poststate_hash = state_hash(self.ins_state.state.encode_witness()?);
 
@@ -171,7 +178,7 @@ where
                         Ok(())
                     }));
                 } else {
-                    self.ins_state.step(false)?;
+                    self.ins_state.step(false).await?;
                 }
 
                 // Periodically check if the preimage server process has exited. If it has, then
@@ -179,7 +186,7 @@ where
                 // TODO: This may be problematic.
                 if step % 10_000_000 == 0 {
                     if let Some(ref mut proc) = self.server_proc {
-                        match proc.inner.try_wait() {
+                        match proc.try_wait() {
                             Ok(Some(status)) => {
                                 anyhow::bail!("Preimage server exited with status: {}", status);
                             }
