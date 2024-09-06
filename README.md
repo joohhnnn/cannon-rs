@@ -74,11 +74,14 @@ To get started, a few dependencies are required:
 * [Rust toolchain][rustup]
     * Recommended: [`cargo-nextest`][nextest]
 * [Go toolchain][golang]
-* [binutils][binutils]
+* [binutils][binutils] 
+    * **Note for macOS users:** Please avoid installing `binutils` using `brew`.
 
 ### Testing
 
+
 ```sh
+# Note: If you're a macOS user, please avoid installing binutils using brew.
 # With `cargo-nextest`
 cargo +nightly nextest run --release --all --all-features
 # Without `cargo-nextest`
